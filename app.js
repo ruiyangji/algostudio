@@ -164,6 +164,20 @@ const storageService = {
     return data;
   },
 
+  async importZip(file) {
+    const res = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/zip' },
+      body: file
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to import ZIP archive');
+    return data;
+  },
+
+  exportZipUrl() {
+    return '/api/export';
+  }
 };
 /**
  * AlgoStudio UI Utilities & Interaction Handlers

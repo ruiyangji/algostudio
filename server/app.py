@@ -71,6 +71,16 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
 
             return self.send_json_file(q_path)
 
+        elif path == "/api/export":
+            zip_bytes = storage.export_zip_archive()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Disposition", 'attachment; filename="algostudio-problems.zip"')
+            self.send_header("Content-Length", str(len(zip_bytes)))
+            self.end_headers()
+            self.wfile.write(zip_bytes)
+            return
+
         # Serve static assets
         return super().do_GET()
 
@@ -80,6 +90,16 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
 
         content_length = int(self.headers.get("Content-Length", 0))
         post_data = self.rfile.read(content_length)
+
+        # Handle bulk ZIP import before JSON decoding
+        if path == "/api/import":
+            count, imported, errors = storage.import_zip_archive(post_data)
+            return self.send_json_response({
+                "success": True,
+                "count": count,
+                "imported": imported,
+                "errors": errors
+            })
 
         try:
             payload = json.loads(post_data.decode("utf-8")) if post_data else {}

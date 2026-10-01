@@ -201,3 +201,78 @@ def delete_question(qid: str) -> bool:
     return False
 
 
+def import_zip_archive(zip_bytes: bytes) -> tuple[int, list, list]:
+    """
+    Import questions in bulk from a zip file containing JSON question files.
+    Supports flat zip, nested questions/ directory, or custom structured zip files.
+    Returns (imported_count, imported_titles, errors).
+    """
+    ensure_storage_dirs()
+    imported_titles = []
+    errors = []
+
+    try:
+        buf = io.BytesIO(zip_bytes)
+        with zipfile.ZipFile(buf, "r") as zf:
+            for fname in zf.namelist():
+                base = os.path.basename(fname)
+                # Ignore directory entries, hidden files, or non-JSON
+                if not base or base.startswith(".") or not base.endswith(".json"):
+                    continue
+                if "__MACOSX" in fname:
+                    continue
+                # Skip index manifests if present
+                if base in ("index.json", "bundle.js", "package.json"):
+                    continue
+
+                try:
+                    content = zf.read(fname).decode("utf-8")
+                    data = json.loads(content)
+                except Exception as e:
+                    errors.append(f"Failed to parse {base}: {e}")
+                    continue
+
+                if not isinstance(data, dict):
+                    continue
+
+                # Validate and save question
+                title = data.get("title")
+                if not title:
+                    continue
+
+                saved, val_errs = save_question(data, reindex=False)
+                if saved:
+                    imported_titles.append(saved["title"])
+                elif val_errs:
+                    errors.append(f"{title}: {', '.join(val_errs)}")
+
+        reindex_all()
+        return len(imported_titles), imported_titles, errors
+    except Exception as e:
+        return 0, [], [f"Invalid ZIP archive: {e}"]
+
+
+def export_zip_archive() -> bytes:
+    """
+    Package all current questions into a downloadable ZIP archive.
+    """
+    ensure_storage_dirs()
+    q_dir = os.path.join(DATA_DIR, "questions")
+    buf = io.BytesIO()
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Include all questions
+        if os.path.exists(q_dir):
+            for fname in sorted(os.listdir(q_dir)):
+                if fname.endswith(".json"):
+                    fpath = os.path.join(q_dir, fname)
+                    zf.write(fpath, arcname=f"questions/{fname}")
+
+        # Include index.json
+        index_path = os.path.join(DATA_DIR, "index.json")
+        if os.path.exists(index_path):
+            zf.write(index_path, arcname="index.json")
+
+    buf.seek(0)
+    return buf.getvalue()
+
