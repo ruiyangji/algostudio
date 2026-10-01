@@ -110,6 +110,7 @@ def build_index_summary(q: dict) -> dict:
         "slug": q.get("slug", generate_slug(q.get("title", ""))),
         "difficulty": diff,
         "difficultyLabel": diff_labels.get(diff, "Medium"),
+        "type": q.get("type", "SINGLE_STEP"),
         "company": company_name,
         "companyFrequency": "High",
         "tags": q.get("tags") or q.get("algorithmTags") or ["Algorithms"],
@@ -121,10 +122,11 @@ def build_index_summary(q: dict) -> dict:
 
 
 def reindex_all():
-    """Scan data/questions/*.json and rebuild data/index.json."""
+    """Scan data/questions/*.json and rebuild data/index.json (deduplicating by question ID)."""
     ensure_storage_dirs()
     q_dir = os.path.join(DATA_DIR, "questions")
     index = []
+    seen_ids = set()
 
     for fname in sorted(os.listdir(q_dir)):
         if not fname.endswith(".json"):
@@ -133,6 +135,10 @@ def reindex_all():
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 q = json.load(f)
+                qid = q.get("id")
+                if not qid or qid in seen_ids:
+                    continue
+                seen_ids.add(qid)
                 index.append(build_index_summary(q))
         except Exception:
             continue

@@ -89,6 +89,19 @@ function setQuestion(q) {
   diffElem.textContent = q.difficultyLabel || 'Medium';
   diffElem.className = `badge badge-difficulty ${(q.difficultyLabel || 'medium').toLowerCase()}`;
 
+  // Question Type badge
+  const typeElem = document.getElementById('p-type');
+  if (typeElem) {
+    const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+    const typeLabels = {
+      'SINGLE_STEP': 'Single Function',
+      'MULTI_STEP': 'Interactive Class',
+      'RAW_CODE': 'Script Execution'
+    };
+    typeElem.textContent = typeLabels[qType] || 'Algorithm';
+    typeElem.className = `badge badge-type ${(q.type || 'single_step').toLowerCase()}`;
+  }
+
   // Stage
   const stageElem = document.getElementById('p-stage');
   stageElem.textContent = (q.stages && q.stages.length > 0) ? q.stages.join(', ') : 'OA';
@@ -300,11 +313,32 @@ function populateQuickSelect() {
   if (!select) return;
   select.innerHTML = '';
 
+  const groups = {
+    'SINGLE_STEP': { label: '⚡ Single Function Problems', questions: [] },
+    'MULTI_STEP': { label: '🧩 Interactive Class Design', questions: [] },
+    'RAW_CODE': { label: '📜 Script Execution Problems', questions: [] }
+  };
+
   state.questionsIndex.forEach(q => {
-    const opt = document.createElement('option');
-    opt.value = q.id;
-    opt.textContent = `${q.title} (${q.difficultyLabel || 'Medium'})`;
-    select.appendChild(opt);
+    const t = (q.type || 'SINGLE_STEP').toUpperCase();
+    if (groups[t]) {
+      groups[t].questions.push(q);
+    } else {
+      groups['SINGLE_STEP'].questions.push(q);
+    }
+  });
+
+  Object.values(groups).forEach(g => {
+    if (g.questions.length === 0) return;
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = `${g.label} (${g.questions.length})`;
+    g.questions.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = `${q.title} [${q.difficultyLabel || 'Medium'}]`;
+      optgroup.appendChild(opt);
+    });
+    select.appendChild(optgroup);
   });
 
   select.onchange = (e) => loadQuestionById(e.target.value);
@@ -316,7 +350,7 @@ function populateExplorerTable(questions) {
   tbody.innerHTML = '';
 
   if (!questions || questions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No questions match the current filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No questions match the current filters.</td></tr>';
     return;
   }
 
@@ -324,6 +358,13 @@ function populateExplorerTable(questions) {
     const tr = document.createElement('tr');
     const compName = formatCompanyName(q.company || 'General');
     const diffLabel = q.difficultyLabel || 'Medium';
+    const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+    const typeLabels = {
+      'SINGLE_STEP': 'Single Func',
+      'MULTI_STEP': 'Interactive',
+      'RAW_CODE': 'Script'
+    };
+    const typeBadgeHtml = `<span class="badge badge-type ${(q.type || 'single_step').toLowerCase()}">${typeLabels[qType] || 'Algorithm'}</span>`;
     const tagsHtml = (q.tags || []).slice(0, 2).map(t => `<span class="tag-pill">${escapeHtml(formatTag(t))}</span>`).join(' ');
 
     tr.innerHTML = `
@@ -331,6 +372,7 @@ function populateExplorerTable(questions) {
       <td><strong>${escapeHtml(q.title)}</strong></td>
       <td><span class="badge badge-company">${escapeHtml(compName)}</span></td>
       <td><span class="badge badge-difficulty ${diffLabel.toLowerCase()}">${diffLabel}</span></td>
+      <td>${typeBadgeHtml}</td>
       <td><div class="tags-list">${tagsHtml}</div></td>
       <td style="font-family:var(--font-mono); font-size:12px;">${q.testCaseCount || 0}</td>
       <td>
@@ -343,26 +385,70 @@ function populateExplorerTable(questions) {
 
 function populateExplorerFilters() {
   const compSelect = document.getElementById('explorer-comp-filter');
-  if (!compSelect) return;
+  if (compSelect) {
+    const companies = new Set();
+    state.questionsIndex.forEach(q => {
+      if (q.company) companies.add(q.company);
+    });
 
-  const companies = new Set();
-  state.questionsIndex.forEach(q => {
-    if (q.company) companies.add(q.company);
-  });
+    compSelect.innerHTML = '<option value="">All Companies</option>';
+    Array.from(companies).sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = formatCompanyName(c);
+      compSelect.appendChild(opt);
+    });
+  }
 
-  compSelect.innerHTML = '<option value="">All Companies</option>';
-  Array.from(companies).sort().forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = formatCompanyName(c);
-    compSelect.appendChild(opt);
+  // Populate Topic Category Chips
+  const chipsContainer = document.getElementById('explorer-topic-chips');
+  if (chipsContainer) {
+    const tagCounts = {};
+    state.questionsIndex.forEach(q => {
+      (q.tags || []).forEach(t => {
+        const formatted = formatTag(t);
+        tagCounts[formatted] = (tagCounts[formatted] || 0) + 1;
+      });
+    });
+
+    chipsContainer.innerHTML = '';
+    
+    // "All" chip
+    const allChip = document.createElement('button');
+    allChip.className = `topic-chip ${!state.activeTopicFilter ? 'active' : ''}`;
+    allChip.innerHTML = `All <span class="chip-count">${state.questionsIndex.length}</span>`;
+    allChip.onclick = () => selectTopicFilter('');
+    chipsContainer.appendChild(allChip);
+
+    // Sorted topic chips by count
+    Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([topic, count]) => {
+        const chip = document.createElement('button');
+        chip.className = `topic-chip ${state.activeTopicFilter === topic ? 'active' : ''}`;
+        chip.innerHTML = `${escapeHtml(topic)} <span class="chip-count">${count}</span>`;
+        chip.onclick = () => selectTopicFilter(topic);
+        chipsContainer.appendChild(chip);
+      });
+  }
+}
+
+function selectTopicFilter(topic) {
+  state.activeTopicFilter = topic;
+  document.querySelectorAll('#explorer-topic-chips .topic-chip').forEach(btn => {
+    const isAll = !topic && btn.textContent.startsWith('All');
+    const isTopic = topic && btn.textContent.startsWith(topic);
+    btn.classList.toggle('active', Boolean(isAll || isTopic));
   });
+  filterQuestions();
 }
 
 function filterQuestions() {
   const search = (document.getElementById('explorer-search')?.value || '').toLowerCase();
   const company = document.getElementById('explorer-comp-filter')?.value || '';
   const diff = document.getElementById('explorer-diff-filter')?.value || '';
+  const qType = document.getElementById('explorer-type-filter')?.value || '';
+  const activeTopic = state.activeTopicFilter || '';
 
   const filtered = state.questionsIndex.filter(q => {
     const titleMatch = (q.title || '').toLowerCase().includes(search);
@@ -372,8 +458,10 @@ function filterQuestions() {
 
     const companyFilterMatch = !company || q.company === company;
     const diffFilterMatch = !diff || String(q.difficulty) === String(diff);
+    const typeFilterMatch = !qType || (q.type || 'SINGLE_STEP').toUpperCase() === qType.toUpperCase();
+    const topicFilterMatch = !activeTopic || (q.tags || []).some(t => formatTag(t).toLowerCase() === activeTopic.toLowerCase() || t.toLowerCase() === activeTopic.toLowerCase());
 
-    return searchMatch && companyFilterMatch && diffFilterMatch;
+    return searchMatch && companyFilterMatch && diffFilterMatch && typeFilterMatch && topicFilterMatch;
   });
 
   populateExplorerTable(filtered);

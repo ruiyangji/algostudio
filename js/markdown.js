@@ -27,6 +27,17 @@ function parseMarkdown(md) {
     return `__MATH_FORMULA_${mathFormulas.length - 1}__`;
   });
 
+  // Safe HTML entity escaping
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   // 5. Extract & protect inline code: `code`
   const inlineCodes = [];
   text = text.replace(/`([^`\n]+)`/g, (m, code) => {
@@ -34,16 +45,26 @@ function parseMarkdown(md) {
     return `__INLINE_CODE_${inlineCodes.length - 1}__`;
   });
 
-  // 6. Protect safe HTML tags (e.g. <sup>, <sub>, <br>)
+  // 6. Protect rich safe HTML tags (e.g. <sup>, <sub>, <kbd>, <table>, <span>, etc.)
   const safeTags = [];
-  text = text.replace(/<(sup|sub|b|i|strong|em)(\s*\/)?>([\s\S]*?)<\/\1>/gi, (m) => {
+  const allowedTagNames = 'sup|sub|b|i|strong|em|u|s|del|ins|kbd|var|samp|small|span|div|p|table|thead|tbody|tfoot|tr|th|td|a|code|pre|blockquote|font';
+  
+  // Tag pairs with content: <tag ...>...</tag>
+  const pairRegex = new RegExp(`<(${allowedTagNames})(\\s+[^>]*)?>([\\s\\S]*?)<\\/\\1>`, 'gi');
+  text = text.replace(pairRegex, (m) => {
     safeTags.push(m);
     return `__SAFE_TAG_${safeTags.length - 1}__`;
   });
-  text = text.replace(/<br\s*\/?>/gi, () => {
-    safeTags.push('<br>');
+
+  // Self-closing / void tags: <br>, <hr>, <img ...>
+  text = text.replace(/<(br|hr|img)(\s+[^>]*)?\/?>/gi, (m) => {
+    safeTags.push(m);
     return `__SAFE_TAG_${safeTags.length - 1}__`;
   });
+
+  // Protect any remaining angle brackets in raw text that are not tags or placeholders
+  text = text.replace(/<(?![a-zA-Z\/_])/g, '&lt;');
+  text = text.replace(/<([a-zA-Z0-9_\-]+)(?![^>]*>)/g, '&lt;$1');
 
   // Helper for inline markdown (bold, italic, complexity)
   function renderInline(str) {
@@ -109,12 +130,12 @@ function parseMarkdown(md) {
     ${inputVal ? `
     <div class="example-row">
       <span class="example-key">Input:</span>
-      <pre class="example-code"><code>${renderInline(inputVal)}</code></pre>
+      <pre class="example-code"><code>${escapeHtml(inputVal)}</code></pre>
     </div>` : ''}
     ${outputVal ? `
     <div class="example-row">
       <span class="example-key">Output:</span>
-      <pre class="example-code"><code>${renderInline(outputVal)}</code></pre>
+      <pre class="example-code"><code>${escapeHtml(outputVal)}</code></pre>
     </div>` : ''}
     ${explVal ? `
     <div class="example-row explanation-row">
@@ -301,7 +322,7 @@ function parseMarkdown(md) {
   // 18. Restore Code Blocks, Math, Safe Tags, and Inline Code
   text = text.replace(/__CODE_BLOCK_(\d+)__/g, (m, idx) => {
     const cb = codeBlocks[parseInt(idx, 10)];
-    return `<pre class="code-block"><code class="${cb.lang}">${cb.code}</code></pre>`;
+    return `<pre class="code-block"><code class="${escapeHtml(cb.lang)}">${escapeHtml(cb.code)}</code></pre>`;
   });
 
   text = text.replace(/__MATH_FORMULA_(\d+)__/g, (m, idx) => {
@@ -313,7 +334,7 @@ function parseMarkdown(md) {
   });
 
   text = text.replace(/__INLINE_CODE_(\d+)__/g, (m, idx) => {
-    return `<code class="inline-code">${inlineCodes[parseInt(idx, 10)]}</code>`;
+    return `<code class="inline-code">${escapeHtml(inlineCodes[parseInt(idx, 10)])}</code>`;
   });
 
   return text;

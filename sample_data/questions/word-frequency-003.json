@@ -1,0 +1,63 @@
+{
+  "id": "word-frequency-003",
+  "title": "Word Frequency Analyzer",
+  "slug": "word-frequency-analyzer",
+  "type": "RAW_CODE",
+  "difficulty": 2,
+  "difficultyLabel": "Medium",
+  "company": {
+    "General": {
+      "frequency": "Medium"
+    }
+  },
+  "tags": ["Simulation", "Hash Table", "Strings"],
+  "stats": {
+    "acceptance": "60.5%",
+    "submissions": 4200000
+  },
+  "description": "## Problem Description\n\nGiven a list of words, return the **top k** most frequent words.\n\nSort the words by frequency from highest to lowest. If two words have the same frequency, sort them in **lexicographical order**.\n\n### Examples\n\n#### Example 1:\n```\nInput: words = [\"i\",\"love\",\"leetcode\",\"i\",\"love\",\"coding\"], k = 2\nOutput: [\"i\",\"love\"]\nExplanation: \"i\" and \"love\" are the two most frequent words with count 2.\n```\n\n#### Example 2:\n```\nInput: words = [\"the\",\"day\",\"is\",\"sunny\",\"the\",\"the\",\"the\",\"sunny\",\"is\",\"is\"], k = 4\nOutput: [\"the\",\"is\",\"sunny\",\"day\"]\n```\n\n### Constraints:\n* `1 <= words.length <= 500`\n* `1 <= words[i].length <= 10`\n* `words[i]` consists of lowercase English letters.\n* `k` is in the range `[1, The number of unique words[i]]`.\n",
+  "editorial": "## Solution Approach\n\n### Frequency Map + Heap / Custom Sort\n\n1. Count word frequencies using `collections.Counter`.\n2. Sort words using key `(-frequency, word)`.\n3. Return the first `k` words.\n\n### Complexity Analysis\n- **Time Complexity:** $O(N \\log N)$ where $N$ is the number of unique words.\n- **Space Complexity:** $O(N)$ for the frequency map.\n",
+  "hints": [
+    "Count the frequency of each word using a hash map.",
+    "When frequencies match, sort alphabetically."
+  ],
+  "definition": {
+    "className": "Solution",
+    "methods": [
+      {
+        "name": "topKFrequent",
+        "params": [
+          {"name": "words", "type": "list[str]"},
+          {"name": "k", "type": "int"}
+        ],
+        "return": {"type": "list[str]"}
+      }
+    ]
+  },
+  "language": {
+    "python": {
+      "predefinedCode": "class Solution:\n    def topKFrequent(self, words: list[str], k: int) -> list[str]:\n        # Implement solution here\n        pass\n",
+      "solutionCode": "from collections import Counter\n\nclass Solution:\n    def topKFrequent(self, words: list[str], k: int) -> list[str]:\n        counts = Counter(words)\n        return sorted(counts.keys(), key=lambda w: (-counts[w], w))[:k]\n"
+    }
+  },
+  "testCases": [
+    {
+      "steps": [
+        {
+          "methodName": "topKFrequent",
+          "input": [["i", "love", "leetcode", "i", "love", "coding"], 2],
+          "expected": ["i", "love"]
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "methodName": "topKFrequent",
+          "input": [["the", "day", "is", "sunny", "the", "the", "the", "sunny", "is", "is"], 4],
+          "expected": ["the", "is", "sunny", "day"]
+        }
+      ]
+    }
+  ]
+}

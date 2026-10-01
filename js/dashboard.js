@@ -58,10 +58,19 @@ async function renderDashboardList() {
     questions.forEach(q => {
       const tr = document.createElement('tr');
       const diffLabel = q.difficultyLabel || 'Medium';
+      const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+      const typeLabels = {
+        'SINGLE_STEP': 'Single Func',
+        'MULTI_STEP': 'Interactive',
+        'RAW_CODE': 'Script'
+      };
+      const typeBadgeHtml = `<span class="badge badge-type ${(q.type || 'single_step').toLowerCase()}">${typeLabels[qType] || 'Algorithm'}</span>`;
+
       tr.innerHTML = `
         <td><strong>${escapeHtml(q.title)}</strong></td>
         <td><span class="badge badge-company">${escapeHtml(q.company || 'General')}</span></td>
         <td><span class="badge badge-difficulty ${diffLabel.toLowerCase()}">${diffLabel}</span></td>
+        <td>${typeBadgeHtml}</td>
         <td style="font-family:var(--font-mono); font-size:12px;">${q.testCaseCount || 0}</td>
         <td><span class="tag-pill">${(q.tags || []).slice(0, 2).join(', ') || 'None'}</span></td>
         <td>
@@ -131,6 +140,8 @@ function populateEditorForm(q) {
   const comp = Object.keys(q.company || {})[0] || q.companyName || 'General';
   document.getElementById('form-q-company').value = comp;
   document.getElementById('form-q-diff').value = q.difficulty || 2;
+  const typeSelect = document.getElementById('form-q-type');
+  if (typeSelect) typeSelect.value = q.type || 'SINGLE_STEP';
   document.getElementById('form-q-tags').value = (q.tags || q.algorithmTags || []).join(', ');
   document.getElementById('form-q-desc').value = q.description || '';
   document.getElementById('form-q-editorial').value = q.editorial || q.explanation || '';
@@ -288,6 +299,7 @@ async function saveQuestionFromForm() {
 
   const company = document.getElementById('form-q-company').value.trim() || 'General';
   const difficulty = parseInt(document.getElementById('form-q-diff').value, 10) || 2;
+  const qType = document.getElementById('form-q-type')?.value || 'SINGLE_STEP';
   const tags = document.getElementById('form-q-tags').value.split(',').map(t => t.trim()).filter(Boolean);
   const desc = document.getElementById('form-q-desc').value;
   const editorial = document.getElementById('form-q-editorial').value;
@@ -307,6 +319,7 @@ async function saveQuestionFromForm() {
   const payload = {
     title: title,
     difficulty: difficulty,
+    type: qType,
     company: { [company]: { frequency: 'High' } },
     companyName: company,
     tags: tags.length > 0 ? tags : ['Algorithms'],

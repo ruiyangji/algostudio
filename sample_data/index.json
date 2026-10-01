@@ -5,6 +5,7 @@
     "slug": "two-sum",
     "difficulty": 1,
     "difficultyLabel": "Easy",
+    "type": "SINGLE_STEP",
     "company": "General",
     "companyFrequency": "High",
     "tags": ["Array", "Hash Table"],
@@ -13,5 +14,37 @@
     "hasEditorial": true,
     "hasSolution": true,
     "testCaseCount": 3
+  },
+  {
+    "id": "lru-cache-002",
+    "title": "LRU Cache",
+    "slug": "lru-cache",
+    "difficulty": 2,
+    "difficultyLabel": "Medium",
+    "type": "MULTI_STEP",
+    "company": "General",
+    "companyFrequency": "High",
+    "tags": ["Design", "Hash Table", "Linked List"],
+    "acceptance": "41.8%",
+    "submissions": 8900000,
+    "hasEditorial": true,
+    "hasSolution": true,
+    "testCaseCount": 1
+  },
+  {
+    "id": "word-frequency-003",
+    "title": "Word Frequency Analyzer",
+    "slug": "word-frequency-analyzer",
+    "difficulty": 2,
+    "difficultyLabel": "Medium",
+    "type": "RAW_CODE",
+    "company": "General",
+    "companyFrequency": "Medium",
+    "tags": ["Simulation", "Hash Table", "Strings"],
+    "acceptance": "60.5%",
+    "submissions": 4200000,
+    "hasEditorial": true,
+    "hasSolution": true,
+    "testCaseCount": 2
   }
 ]

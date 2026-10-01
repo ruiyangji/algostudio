@@ -85,6 +85,17 @@ function parseMarkdown(md) {
     return `__MATH_FORMULA_${mathFormulas.length - 1}__`;
   });
 
+  // Safe HTML entity escaping
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   // 5. Extract & protect inline code: `code`
   const inlineCodes = [];
   text = text.replace(/`([^`\n]+)`/g, (m, code) => {
@@ -92,16 +103,26 @@ function parseMarkdown(md) {
     return `__INLINE_CODE_${inlineCodes.length - 1}__`;
   });
 
-  // 6. Protect safe HTML tags (e.g. <sup>, <sub>, <br>)
+  // 6. Protect rich safe HTML tags (e.g. <sup>, <sub>, <kbd>, <table>, <span>, etc.)
   const safeTags = [];
-  text = text.replace(/<(sup|sub|b|i|strong|em)(\s*\/)?>([\s\S]*?)<\/\1>/gi, (m) => {
+  const allowedTagNames = 'sup|sub|b|i|strong|em|u|s|del|ins|kbd|var|samp|small|span|div|p|table|thead|tbody|tfoot|tr|th|td|a|code|pre|blockquote|font';
+  
+  // Tag pairs with content: <tag ...>...</tag>
+  const pairRegex = new RegExp(`<(${allowedTagNames})(\\s+[^>]*)?>([\\s\\S]*?)<\\/\\1>`, 'gi');
+  text = text.replace(pairRegex, (m) => {
     safeTags.push(m);
     return `__SAFE_TAG_${safeTags.length - 1}__`;
   });
-  text = text.replace(/<br\s*\/?>/gi, () => {
-    safeTags.push('<br>');
+
+  // Self-closing / void tags: <br>, <hr>, <img ...>
+  text = text.replace(/<(br|hr|img)(\s+[^>]*)?\/?>/gi, (m) => {
+    safeTags.push(m);
     return `__SAFE_TAG_${safeTags.length - 1}__`;
   });
+
+  // Protect any remaining angle brackets in raw text that are not tags or placeholders
+  text = text.replace(/<(?![a-zA-Z\/_])/g, '&lt;');
+  text = text.replace(/<([a-zA-Z0-9_\-]+)(?![^>]*>)/g, '&lt;$1');
 
   // Helper for inline markdown (bold, italic, complexity)
   function renderInline(str) {
@@ -167,12 +188,12 @@ function parseMarkdown(md) {
     ${inputVal ? `
     <div class="example-row">
       <span class="example-key">Input:</span>
-      <pre class="example-code"><code>${renderInline(inputVal)}</code></pre>
+      <pre class="example-code"><code>${escapeHtml(inputVal)}</code></pre>
     </div>` : ''}
     ${outputVal ? `
     <div class="example-row">
       <span class="example-key">Output:</span>
-      <pre class="example-code"><code>${renderInline(outputVal)}</code></pre>
+      <pre class="example-code"><code>${escapeHtml(outputVal)}</code></pre>
     </div>` : ''}
     ${explVal ? `
     <div class="example-row explanation-row">
@@ -359,7 +380,7 @@ function parseMarkdown(md) {
   // 18. Restore Code Blocks, Math, Safe Tags, and Inline Code
   text = text.replace(/__CODE_BLOCK_(\d+)__/g, (m, idx) => {
     const cb = codeBlocks[parseInt(idx, 10)];
-    return `<pre class="code-block"><code class="${cb.lang}">${cb.code}</code></pre>`;
+    return `<pre class="code-block"><code class="${escapeHtml(cb.lang)}">${escapeHtml(cb.code)}</code></pre>`;
   });
 
   text = text.replace(/__MATH_FORMULA_(\d+)__/g, (m, idx) => {
@@ -371,7 +392,7 @@ function parseMarkdown(md) {
   });
 
   text = text.replace(/__INLINE_CODE_(\d+)__/g, (m, idx) => {
-    return `<code class="inline-code">${inlineCodes[parseInt(idx, 10)]}</code>`;
+    return `<code class="inline-code">${escapeHtml(inlineCodes[parseInt(idx, 10)])}</code>`;
   });
 
   return text;
@@ -500,10 +521,19 @@ async function renderDashboardList() {
     questions.forEach(q => {
       const tr = document.createElement('tr');
       const diffLabel = q.difficultyLabel || 'Medium';
+      const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+      const typeLabels = {
+        'SINGLE_STEP': 'Single Func',
+        'MULTI_STEP': 'Interactive',
+        'RAW_CODE': 'Script'
+      };
+      const typeBadgeHtml = `<span class="badge badge-type ${(q.type || 'single_step').toLowerCase()}">${typeLabels[qType] || 'Algorithm'}</span>`;
+
       tr.innerHTML = `
         <td><strong>${escapeHtml(q.title)}</strong></td>
         <td><span class="badge badge-company">${escapeHtml(q.company || 'General')}</span></td>
         <td><span class="badge badge-difficulty ${diffLabel.toLowerCase()}">${diffLabel}</span></td>
+        <td>${typeBadgeHtml}</td>
         <td style="font-family:var(--font-mono); font-size:12px;">${q.testCaseCount || 0}</td>
         <td><span class="tag-pill">${(q.tags || []).slice(0, 2).join(', ') || 'None'}</span></td>
         <td>
@@ -573,6 +603,8 @@ function populateEditorForm(q) {
   const comp = Object.keys(q.company || {})[0] || q.companyName || 'General';
   document.getElementById('form-q-company').value = comp;
   document.getElementById('form-q-diff').value = q.difficulty || 2;
+  const typeSelect = document.getElementById('form-q-type');
+  if (typeSelect) typeSelect.value = q.type || 'SINGLE_STEP';
   document.getElementById('form-q-tags').value = (q.tags || q.algorithmTags || []).join(', ');
   document.getElementById('form-q-desc').value = q.description || '';
   document.getElementById('form-q-editorial').value = q.editorial || q.explanation || '';
@@ -730,6 +762,7 @@ async function saveQuestionFromForm() {
 
   const company = document.getElementById('form-q-company').value.trim() || 'General';
   const difficulty = parseInt(document.getElementById('form-q-diff').value, 10) || 2;
+  const qType = document.getElementById('form-q-type')?.value || 'SINGLE_STEP';
   const tags = document.getElementById('form-q-tags').value.split(',').map(t => t.trim()).filter(Boolean);
   const desc = document.getElementById('form-q-desc').value;
   const editorial = document.getElementById('form-q-editorial').value;
@@ -749,6 +782,7 @@ async function saveQuestionFromForm() {
   const payload = {
     title: title,
     difficulty: difficulty,
+    type: qType,
     company: { [company]: { frequency: 'High' } },
     companyName: company,
     tags: tags.length > 0 ? tags : ['Algorithms'],
@@ -1755,6 +1789,19 @@ function setQuestion(q) {
   diffElem.textContent = q.difficultyLabel || 'Medium';
   diffElem.className = `badge badge-difficulty ${(q.difficultyLabel || 'medium').toLowerCase()}`;
 
+  // Question Type badge
+  const typeElem = document.getElementById('p-type');
+  if (typeElem) {
+    const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+    const typeLabels = {
+      'SINGLE_STEP': 'Single Function',
+      'MULTI_STEP': 'Interactive Class',
+      'RAW_CODE': 'Script Execution'
+    };
+    typeElem.textContent = typeLabels[qType] || 'Algorithm';
+    typeElem.className = `badge badge-type ${(q.type || 'single_step').toLowerCase()}`;
+  }
+
   // Stage
   const stageElem = document.getElementById('p-stage');
   stageElem.textContent = (q.stages && q.stages.length > 0) ? q.stages.join(', ') : 'OA';
@@ -1966,11 +2013,32 @@ function populateQuickSelect() {
   if (!select) return;
   select.innerHTML = '';
 
+  const groups = {
+    'SINGLE_STEP': { label: '⚡ Single Function Problems', questions: [] },
+    'MULTI_STEP': { label: '🧩 Interactive Class Design', questions: [] },
+    'RAW_CODE': { label: '📜 Script Execution Problems', questions: [] }
+  };
+
   state.questionsIndex.forEach(q => {
-    const opt = document.createElement('option');
-    opt.value = q.id;
-    opt.textContent = `${q.title} (${q.difficultyLabel || 'Medium'})`;
-    select.appendChild(opt);
+    const t = (q.type || 'SINGLE_STEP').toUpperCase();
+    if (groups[t]) {
+      groups[t].questions.push(q);
+    } else {
+      groups['SINGLE_STEP'].questions.push(q);
+    }
+  });
+
+  Object.values(groups).forEach(g => {
+    if (g.questions.length === 0) return;
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = `${g.label} (${g.questions.length})`;
+    g.questions.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = `${q.title} [${q.difficultyLabel || 'Medium'}]`;
+      optgroup.appendChild(opt);
+    });
+    select.appendChild(optgroup);
   });
 
   select.onchange = (e) => loadQuestionById(e.target.value);
@@ -1982,7 +2050,7 @@ function populateExplorerTable(questions) {
   tbody.innerHTML = '';
 
   if (!questions || questions.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">No questions match the current filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No questions match the current filters.</td></tr>';
     return;
   }
 
@@ -1990,6 +2058,13 @@ function populateExplorerTable(questions) {
     const tr = document.createElement('tr');
     const compName = formatCompanyName(q.company || 'General');
     const diffLabel = q.difficultyLabel || 'Medium';
+    const qType = (q.type || 'SINGLE_STEP').toUpperCase();
+    const typeLabels = {
+      'SINGLE_STEP': 'Single Func',
+      'MULTI_STEP': 'Interactive',
+      'RAW_CODE': 'Script'
+    };
+    const typeBadgeHtml = `<span class="badge badge-type ${(q.type || 'single_step').toLowerCase()}">${typeLabels[qType] || 'Algorithm'}</span>`;
     const tagsHtml = (q.tags || []).slice(0, 2).map(t => `<span class="tag-pill">${escapeHtml(formatTag(t))}</span>`).join(' ');
 
     tr.innerHTML = `
@@ -1997,6 +2072,7 @@ function populateExplorerTable(questions) {
       <td><strong>${escapeHtml(q.title)}</strong></td>
       <td><span class="badge badge-company">${escapeHtml(compName)}</span></td>
       <td><span class="badge badge-difficulty ${diffLabel.toLowerCase()}">${diffLabel}</span></td>
+      <td>${typeBadgeHtml}</td>
       <td><div class="tags-list">${tagsHtml}</div></td>
       <td style="font-family:var(--font-mono); font-size:12px;">${q.testCaseCount || 0}</td>
       <td>
@@ -2009,26 +2085,70 @@ function populateExplorerTable(questions) {
 
 function populateExplorerFilters() {
   const compSelect = document.getElementById('explorer-comp-filter');
-  if (!compSelect) return;
+  if (compSelect) {
+    const companies = new Set();
+    state.questionsIndex.forEach(q => {
+      if (q.company) companies.add(q.company);
+    });
 
-  const companies = new Set();
-  state.questionsIndex.forEach(q => {
-    if (q.company) companies.add(q.company);
-  });
+    compSelect.innerHTML = '<option value="">All Companies</option>';
+    Array.from(companies).sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = formatCompanyName(c);
+      compSelect.appendChild(opt);
+    });
+  }
 
-  compSelect.innerHTML = '<option value="">All Companies</option>';
-  Array.from(companies).sort().forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = formatCompanyName(c);
-    compSelect.appendChild(opt);
+  // Populate Topic Category Chips
+  const chipsContainer = document.getElementById('explorer-topic-chips');
+  if (chipsContainer) {
+    const tagCounts = {};
+    state.questionsIndex.forEach(q => {
+      (q.tags || []).forEach(t => {
+        const formatted = formatTag(t);
+        tagCounts[formatted] = (tagCounts[formatted] || 0) + 1;
+      });
+    });
+
+    chipsContainer.innerHTML = '';
+    
+    // "All" chip
+    const allChip = document.createElement('button');
+    allChip.className = `topic-chip ${!state.activeTopicFilter ? 'active' : ''}`;
+    allChip.innerHTML = `All <span class="chip-count">${state.questionsIndex.length}</span>`;
+    allChip.onclick = () => selectTopicFilter('');
+    chipsContainer.appendChild(allChip);
+
+    // Sorted topic chips by count
+    Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([topic, count]) => {
+        const chip = document.createElement('button');
+        chip.className = `topic-chip ${state.activeTopicFilter === topic ? 'active' : ''}`;
+        chip.innerHTML = `${escapeHtml(topic)} <span class="chip-count">${count}</span>`;
+        chip.onclick = () => selectTopicFilter(topic);
+        chipsContainer.appendChild(chip);
+      });
+  }
+}
+
+function selectTopicFilter(topic) {
+  state.activeTopicFilter = topic;
+  document.querySelectorAll('#explorer-topic-chips .topic-chip').forEach(btn => {
+    const isAll = !topic && btn.textContent.startsWith('All');
+    const isTopic = topic && btn.textContent.startsWith(topic);
+    btn.classList.toggle('active', Boolean(isAll || isTopic));
   });
+  filterQuestions();
 }
 
 function filterQuestions() {
   const search = (document.getElementById('explorer-search')?.value || '').toLowerCase();
   const company = document.getElementById('explorer-comp-filter')?.value || '';
   const diff = document.getElementById('explorer-diff-filter')?.value || '';
+  const qType = document.getElementById('explorer-type-filter')?.value || '';
+  const activeTopic = state.activeTopicFilter || '';
 
   const filtered = state.questionsIndex.filter(q => {
     const titleMatch = (q.title || '').toLowerCase().includes(search);
@@ -2038,8 +2158,10 @@ function filterQuestions() {
 
     const companyFilterMatch = !company || q.company === company;
     const diffFilterMatch = !diff || String(q.difficulty) === String(diff);
+    const typeFilterMatch = !qType || (q.type || 'SINGLE_STEP').toUpperCase() === qType.toUpperCase();
+    const topicFilterMatch = !activeTopic || (q.tags || []).some(t => formatTag(t).toLowerCase() === activeTopic.toLowerCase() || t.toLowerCase() === activeTopic.toLowerCase());
 
-    return searchMatch && companyFilterMatch && diffFilterMatch;
+    return searchMatch && companyFilterMatch && diffFilterMatch && typeFilterMatch && topicFilterMatch;
   });
 
   populateExplorerTable(filtered);

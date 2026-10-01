@@ -32,8 +32,12 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
     def log_message(self, format, *args):
-        # Format clean compact log output
-        sys.stderr.write(f"[{self.log_date_time_string()}] {args[0]} {args[1]} - {args[2]}\n")
+        # Format clean compact log output safely
+        try:
+            msg = format % args
+            sys.stderr.write(f"[{self.log_date_time_string()}] {msg}\n")
+        except Exception:
+            sys.stderr.write(f"[{self.log_date_time_string()}] {' '.join(str(a) for a in args)}\n")
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -53,6 +57,9 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
         if path in ("/", "/index.html"):
             self.path = "/index.html"
             return super().do_GET()
+
+        elif path == "/api/health":
+            return self.send_json_response({"status": "ok", "app": "AlgoStudio", "version": "1.0.0"})
 
         elif path == "/api/questions":
             active_dir = get_data_dir()
