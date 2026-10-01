@@ -1,0 +1,17 @@
+[
+  {
+    "id": "two-sum-001",
+    "title": "Two Sum",
+    "slug": "two-sum",
+    "difficulty": 1,
+    "difficultyLabel": "Easy",
+    "company": "General",
+    "companyFrequency": "High",
+    "tags": ["Array", "Hash Table"],
+    "acceptance": "52.4%",
+    "submissions": 12500000,
+    "hasEditorial": true,
+    "hasSolution": true,
+    "testCaseCount": 3
+  }
+]

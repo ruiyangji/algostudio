@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlgoStudio - Offline Practice</title>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <a href="#" class="brand-logo" onclick="openExplorer(); return false;" title="AlgoStudio Offline">
+          <svg class="logo-icon" width="28" height="28" viewBox="0 0 88 88" fill="none">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M21.8358 30.6716C23.3979 32.2337 23.3979 34.7663 21.8358 36.3284L8.41421 49.75L21.8358 63.1716C23.3979 64.7337 23.3979 67.2663 21.8358 68.8284C20.2737 70.3905 17.741 70.3905 16.1789 68.8284L2.05025 54.6997C-0.683414 51.9661 -0.683421 47.5339 2.05025 44.8003L16.1789 30.6716C17.741 29.1095 20.2737 29.1095 21.8358 30.6716Z" fill="#3B82F6"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M66.1789 30.6716C64.6168 32.2337 64.6168 34.7663 66.1789 36.3284L79.6005 49.75L66.1789 63.1716C64.6168 64.7337 64.6168 67.2663 66.1789 68.8284C67.741 70.3905 70.2737 70.3905 71.8358 68.8284L85.9645 54.6997C88.6981 51.9661 88.6981 47.5339 85.9645 44.8003L71.8358 30.6716C70.2737 29.1095 67.741 29.1095 66.1789 30.6716Z" fill="#3B82F6"/>
+            <path d="M33.2643 44.4039L48.8506 22.804C50.4824 20.5425 54.0315 22.2465 53.2872 24.934L48.0074 44C55.5451 44 59.8187 52.7114 55.1225 58.6073L40.4564 77.0202C38.7471 79.1662 35.3292 77.3907 36.1022 74.7583L41.7574 55.5H38.9407C33.2316 55.5 29.9236 49.0335 33.2643 44.4039Z" fill="#3B82F6"/>
+          </svg>
+          <span class="brand-text">hack<strong>2</strong>hire</span>
+        </a>
+
+        <div class="breadcrumbs">
+          <span class="crumb-link" onclick="openExplorer()">Question Bank</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-link" id="nav-company-name">Scale.AI</span>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current" id="nav-question-title">Distinct Goodness Values</span>
+        </div>
+      </div>
+
+      <div class="nav-center">
+        <div class="question-quick-picker">
+          <select id="quick-question-select" onchange="loadQuestionById(this.value)">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="openExplorer()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+          Browse Questions (<span id="total-questions-count">0</span>)
+        </button>
+      </div>
+
+      <div class="nav-right">
+        <span class="offline-pill" title="Running 100% locally from offline data">
+          <span class="pulse-dot"></span> Offline Ready
+        </span>
+
+        <button class="theme-toggle btn-icon" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+          <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg class="moon-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Split Container -->
+    <main class="workspace">
+      <!-- Left Panel: Problem Information & Tabs -->
+      <section class="pane left-pane" id="left-pane">
+        <!-- Problem Header -->
+        <div class="problem-header">
+          <div class="problem-title-row">
+            <h1 class="problem-title" id="p-title">Distinct Goodness Values</h1>
+          </div>
+          <div class="problem-badges">
+            <span class="badge badge-difficulty" id="p-diff">Medium</span>
+            <span class="badge badge-company" id="p-company">General</span>
+            <span class="badge badge-stage" id="p-stage">OA</span>
+            <div id="p-tags" class="tags-list"></div>
+            <div class="stats-text" id="p-stats">Acceptance: 57.6% (1636 / 2842)</div>
+          </div>
+        </div>
+
+        <!-- Content Tabs Header -->
+        <nav class="content-tabs">
+          <button class="tab-btn active" data-tab="tab-description" onclick="switchTab('tab-description')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Description
+          </button>
+          <button class="tab-btn" data-tab="tab-editorial" onclick="switchTab('tab-editorial')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Editorial & Solutions
+            <span class="pill-badge" id="tab-editorial-badge">Available</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-insights" onclick="switchTab('tab-insights')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Insights & Hints
+            <span class="pill-badge" id="tab-hints-badge">2 Hints</span>
+          </button>
+          <button class="tab-btn" data-tab="tab-testcases" onclick="switchTab('tab-testcases')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Test Cases
+            <span class="pill-badge" id="tab-cases-badge">8</span>
+          </button>
+        </nav>
+
+        <!-- Content Tab Panes -->
+        <div class="content-body">
+          <!-- Description Tab -->
+          <div class="tab-pane active" id="tab-description">
+            <div id="desc-rendered" class="markdown-body"></div>
+          </div>
+
+          <!-- Editorial & Solutions Tab -->
+          <div class="tab-pane" id="tab-editorial">
+            <div class="editorial-container">
+              <div id="editorial-explanation" class="markdown-body"></div>
+              
+              <div class="solutions-section">
+                <div class="solutions-header">
+                  <h3 class="section-title">Verified Solution Code</h3>
+                  <div class="solution-lang-tabs" id="solution-lang-tabs">
+                    <button class="lang-tab active" data-lang="python" onclick="switchSolutionLang('python')">Python 3</button>
+                    <button class="lang-tab" data-lang="cpp" onclick="switchSolutionLang('cpp')">C++</button>
+                    <button class="lang-tab" data-lang="java" onclick="switchSolutionLang('java')">Java</button>
+                    <button class="lang-tab" data-lang="typescript" onclick="switchSolutionLang('typescript')">TypeScript</button>
+                  </div>
+                </div>
+
+                <div class="code-container">
+                  <div class="code-toolbar">
+                    <span class="status-indicator">
+                      <span class="dot-green"></span> Validated Solution
+                    </span>
+                    <div class="code-actions">
+                      <button class="btn btn-sm btn-secondary" onclick="loadSolutionIntoEditor()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                        Load Into Editor
+                      </button>
+                      <button class="btn btn-sm btn-secondary" onclick="copySolutionCode()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <pre class="code-block"><code id="solution-code-view"></code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Insights & Hints Tab -->
+          <div class="tab-pane" id="tab-insights">
+            <div class="insights-container" id="insights-body">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- Test Cases Tab -->
+          <div class="tab-pane" id="tab-testcases">
+            <div class="testcases-viewer" id="testcases-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Draggable Splitter -->
+      <div class="splitter" id="splitter" title="Drag to resize"></div>
+
+      <!-- Right Panel: Code Editor & Execution Console -->
+      <section class="pane right-pane" id="right-pane">
+        <!-- Editor Header -->
+        <div class="editor-header">
+          <div class="editor-header-left">
+            <label for="editor-lang-select" class="sr-only">Language</label>
+            <select id="editor-lang-select" onchange="onEditorLanguageChange(this.value)">
+              <option value="python">Python 3</option>
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+              <option value="typescript">TypeScript</option>
+            </select>
+          </div>
+          <div class="editor-header-right">
+            <button class="btn btn-ghost btn-sm" onclick="resetStarterCode()" title="Reset to default starter code">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="loadSolutionIntoEditor()" title="Replace editor with official solution">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+              Show Solution
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="copyEditorCode()" title="Copy editor code">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Code Editor -->
+        <div class="editor-wrapper">
+          <div class="line-numbers" id="line-numbers">1</div>
+          <textarea class="code-textarea" id="code-editor" spellcheck="false" placeholder="Write your solution here..."></textarea>
+        </div>
+
+        <!-- Execution Action & Results Bar -->
+        <div class="runner-footer">
+          <div class="runner-bar">
+            <div class="runner-bar-left">
+              <button class="btn btn-primary" id="btn-run" onclick="runCode()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Run Code
+              </button>
+              <span class="keyboard-hint">(⌘ + Enter)</span>
+            </div>
+            <div class="runner-bar-right" id="runner-summary-status">
+              <span class="text-muted">Click "Run Code" to test against test cases</span>
+            </div>
+          </div>
+
+          <!-- Test Case Results Drawer -->
+          <div class="results-drawer" id="results-drawer">
+            <div class="results-header">
+              <div class="results-tabs" id="results-tabs">
+                <!-- Case 1, Case 2 tabs populated on run -->
+              </div>
+              <button class="btn-icon btn-sm" onclick="closeResultsDrawer()" title="Close Drawer">✕</button>
+            </div>
+            <div class="results-detail" id="results-detail-content">
+              <!-- Active test case comparison output -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Question Explorer Modal -->
+    <div class="modal-overlay" id="explorer-modal" onclick="closeExplorer(event)">
+      <div class="modal-dialog" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h2>Question Bank Explorer</h2>
+            <p class="modal-subtitle">Browse and select questions available in offline storage</p>
+          </div>
+          <button class="btn-icon" onclick="closeExplorer()">✕</button>
+        </div>
+
+        <div class="modal-filters">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="explorer-search" placeholder="Search by title, tag, or company..." oninput="filterQuestions()">
+          </div>
+
+          <div class="filter-group">
+            <select id="explorer-comp-filter" onchange="filterQuestions()">
+              <option value="">All Companies</option>
+            </select>
+
+            <select id="explorer-diff-filter" onchange="filterQuestions()">
+              <option value="">All Difficulties</option>
+              <option value="1">Easy</option>
+              <option value="2">Medium</option>
+              <option value="3">Hard</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-body">
+          <div class="questions-table-wrapper">
+            <table class="questions-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Title</th>
+                  <th>Company</th>
+                  <th>Difficulty</th>
+                  <th>Tags</th>
+                  <th>Tests</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="questions-table-body">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+  <!-- Bundled data fallback for direct file:// browser viewing -->
+  <script src="data/bundle.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
