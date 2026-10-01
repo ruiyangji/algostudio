@@ -1,6 +1,6 @@
 """
 AlgoStudio Modular Local Server & API Router
-Serves frontend assets, question datasets, and test execution engine.
+Serves frontend assets, question datasets, language server, and test execution engine.
 """
 
 import os
@@ -9,10 +9,11 @@ import json
 import urllib.parse
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-# Import modular runner and lsp
+# Import modular runner, lsp, and storage
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from runner import execute_python_code
 import lsp
+import storage
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -112,6 +113,50 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
             code = payload.get("code", "")
             return self.send_json_response(lsp.format_code(code))
 
+        elif path == "/api/questions":
+            saved, errors = storage.save_question(payload)
+            if errors:
+                return self.send_json_error(400, ", ".join(errors))
+            return self.send_json_response({"success": True, "question": saved}, status=201)
+
+        self.send_json_error(404, "Endpoint not found")
+
+    def do_PUT(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length)
+
+        try:
+            payload = json.loads(post_data.decode("utf-8")) if post_data else {}
+        except Exception as e:
+            return self.send_json_error(400, f"Invalid JSON payload: {e}")
+
+        if path in ("/api/questions", "/api/question"):
+            qid = payload.get("id")
+            if not qid:
+                return self.send_json_error(400, "Missing question ID for update")
+            updated, errors = storage.update_question(qid, payload)
+            if errors:
+                return self.send_json_error(400, ", ".join(errors))
+            return self.send_json_response({"success": True, "question": updated})
+
+        self.send_json_error(404, "Endpoint not found")
+
+    def do_DELETE(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+
+        if path in ("/api/questions", "/api/question"):
+            qid = query.get("id", [""])[0]
+            if not qid:
+                return self.send_json_error(400, "Missing question ID to delete")
+            success = storage.delete_question(qid)
+            if success:
+                return self.send_json_response({"success": True, "deleted": qid})
+            return self.send_json_error(404, f"Question '{qid}' not found")
+
         self.send_json_error(404, "Endpoint not found")
 
     def send_json_file(self, filepath):
@@ -143,7 +188,7 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="AlgoStudio Offline Platform Server")
+    parser = argparse.ArgumentParser(description="AlgoStudio Offline LeetCode Practice Server")
     parser.add_argument("--port", type=int, default=8080, help="Port to run local server on (default: 8080)")
     parser.add_argument("--host", default="0.0.0.0", help="Host interface (default: 0.0.0.0)")
     args = parser.parse_args()

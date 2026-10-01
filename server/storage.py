@@ -1,13 +1,15 @@
 """
 AlgoStudio Question Storage & Indexing Engine
-Provides CRUD persistence, schema validation, and catalog re-indexing.
+Provides CRUD persistence, schema validation, catalog re-indexing, and ZIP bulk import/export.
 """
 
 import os
 import re
+import io
 import json
 import uuid
 import shutil
+import zipfile
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -84,8 +86,19 @@ def validate_question(data: dict) -> list:
 def build_index_summary(q: dict) -> dict:
     diff_labels = {1: "Easy", 2: "Medium", 3: "Hard"}
     diff = q.get("difficulty", 2)
-    companies = list((q.get("company") or {}).keys())
-    company_name = companies[0] if companies else q.get("companyName", "General")
+
+    comp_dict = q.get("company")
+    company_name = "General"
+    if isinstance(comp_dict, dict):
+        active = [k for k, v in comp_dict.items() if v]
+        if active:
+            company_name = active[0].title()
+        elif comp_dict:
+            company_name = list(comp_dict.keys())[0].title()
+    elif isinstance(comp_dict, str):
+        company_name = comp_dict
+    elif q.get("companyName"):
+        company_name = q.get("companyName")
 
     editorial = q.get("editorial") or q.get("explanation") or ""
     has_editorial = bool(editorial.strip())
@@ -131,7 +144,7 @@ def reindex_all():
     return index
 
 
-def save_question(q: dict) -> tuple[dict, list]:
+def save_question(q: dict, reindex: bool = True) -> tuple[dict, list]:
     """Create a new question."""
     ensure_storage_dirs()
     errors = validate_question(q)
@@ -150,7 +163,8 @@ def save_question(q: dict) -> tuple[dict, list]:
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(q, f, indent=2, ensure_ascii=False)
 
-    reindex_all()
+    if reindex:
+        reindex_all()
     return q, []
 
 
@@ -185,3 +199,5 @@ def delete_question(qid: str) -> bool:
         reindex_all()
         return True
     return False
+
+
