@@ -1,0 +1,19 @@
+{
+  "name": "algostudio",
+  "version": "1.0.0",
+  "description": "A 100% offline, self-contained LeetCode-style coding interview practice platform, problem creator, and test runner with bulk ZIP import.",
+  "main": "server/app.py",
+  "scripts": {
+    "start": "python3 server/app.py"
+  },
+  "keywords": [
+    "leetcode",
+    "algorithms",
+    "coding-interview",
+    "offline-practice",
+    "monaco-editor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs"
+}
