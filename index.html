@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AlgoStudio - Offline Practice</title>
+  <title>AlgoStudio - Offline LeetCode Practice</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="vendor/monaco/editor/editor.main.css">
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -18,15 +19,15 @@
             <path fill-rule="evenodd" clip-rule="evenodd" d="M66.1789 30.6716C64.6168 32.2337 64.6168 34.7663 66.1789 36.3284L79.6005 49.75L66.1789 63.1716C64.6168 64.7337 64.6168 67.2663 66.1789 68.8284C67.741 70.3905 70.2737 70.3905 71.8358 68.8284L85.9645 54.6997C88.6981 51.9661 88.6981 47.5339 85.9645 44.8003L71.8358 30.6716C70.2737 29.1095 67.741 29.1095 66.1789 30.6716Z" fill="#3B82F6"/>
             <path d="M33.2643 44.4039L48.8506 22.804C50.4824 20.5425 54.0315 22.2465 53.2872 24.934L48.0074 44C55.5451 44 59.8187 52.7114 55.1225 58.6073L40.4564 77.0202C38.7471 79.1662 35.3292 77.3907 36.1022 74.7583L41.7574 55.5H38.9407C33.2316 55.5 29.9236 49.0335 33.2643 44.4039Z" fill="#3B82F6"/>
           </svg>
-          <span class="brand-text">hack<strong>2</strong>hire</span>
+          <span class="brand-text">algo<strong>studio</strong></span>
         </a>
 
         <div class="breadcrumbs">
-          <span class="crumb-link" onclick="openExplorer()">Question Bank</span>
+          <span class="crumb-link" onclick="openExplorer()">Problem Library</span>
           <span class="crumb-sep">/</span>
-          <span class="crumb-link" id="nav-company-name">Scale.AI</span>
+          <span class="crumb-link" id="nav-company-name">General</span>
           <span class="crumb-sep">/</span>
-          <span class="crumb-current" id="nav-question-title">Distinct Goodness Values</span>
+          <span class="crumb-current" id="nav-question-title">Two Sum</span>
         </div>
       </div>
 
@@ -39,6 +40,8 @@
         <button class="btn btn-outline btn-sm" onclick="openExplorer()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
           Browse Questions (<span id="total-questions-count">0</span>)
+        </button>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
 
@@ -61,14 +64,14 @@
         <!-- Problem Header -->
         <div class="problem-header">
           <div class="problem-title-row">
-            <h1 class="problem-title" id="p-title">Distinct Goodness Values</h1>
+            <h1 class="problem-title" id="p-title">Two Sum</h1>
           </div>
           <div class="problem-badges">
-            <span class="badge badge-difficulty" id="p-diff">Medium</span>
+            <span class="badge badge-difficulty easy" id="p-diff">Easy</span>
             <span class="badge badge-company" id="p-company">General</span>
-            <span class="badge badge-stage" id="p-stage">OA</span>
+            <span class="badge badge-stage" id="p-stage">Practice</span>
             <div id="p-tags" class="tags-list"></div>
-            <div class="stats-text" id="p-stats">Acceptance: 57.6% (1636 / 2842)</div>
+            <div class="stats-text" id="p-stats"></div>
           </div>
         </div>
 
@@ -173,6 +176,10 @@
             </select>
           </div>
           <div class="editor-header-right">
+            <button class="btn btn-ghost btn-sm" onclick="formatEditorCode()" title="Format Code (⌥ + ⇧ + F)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              Format
+            </button>
             <button class="btn btn-ghost btn-sm" onclick="resetStarterCode()" title="Reset to default starter code">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
               Reset
@@ -188,10 +195,9 @@
           </div>
         </div>
 
-        <!-- Code Editor -->
+        <!-- Monaco Editor Container -->
         <div class="editor-wrapper">
-          <div class="line-numbers" id="line-numbers">1</div>
-          <textarea class="code-textarea" id="code-editor" spellcheck="false" placeholder="Write your solution here..."></textarea>
+          <div id="monaco-editor-container" style="width: 100%; height: 100%;"></div>
         </div>
 
         <!-- Execution Action & Results Bar -->
@@ -279,10 +285,12 @@
       </div>
     </div>
 
+    <!-- Question Management Dashboard Modal -->
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
   <!-- Bundled data fallback for direct file:// browser viewing -->
   <script src="data/bundle.js"></script>
+  <script src="vendor/monaco/loader.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
