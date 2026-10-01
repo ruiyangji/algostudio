@@ -1,5 +1,5 @@
 """
-Hack2hire Python Language Server (LSP) Engine
+AlgoStudio Python Language Server (LSP) Engine
 Provides autocomplete (Jedi), hover docs, real-time AST linting, and formatting (Black).
 """
 
