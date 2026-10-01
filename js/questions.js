@@ -126,15 +126,26 @@ function setQuestion(q) {
   // Render Insights & Hints
   renderInsights(q.insights || { hints: q.hints || [] });
 
-  // Render Test Cases
+  // Render Test Cases (Tab view and Console Pane view)
   renderTestCases(q.testCases || []);
+  if (typeof renderConsoleTestcases === 'function') {
+    renderConsoleTestcases();
+  }
 
   // Update Editor with language starter code or cached edits
   loadCodeForLanguage(state.selectedLanguage);
 
-  // Reset Results Drawer
-  closeResultsDrawer();
-  document.getElementById('runner-summary-status').innerHTML = '<span class="text-muted">Click "Run Code" to test against test cases</span>';
+  // Reset Console Results & Status
+  const statusDot = document.getElementById('console-status-dot');
+  if (statusDot) statusDot.className = 'console-status-dot';
+  const runnerStatus = document.getElementById('runner-summary-status');
+  if (runnerStatus) runnerStatus.innerHTML = '<span class="text-muted">Click "Run Code" to test</span>';
+  const resultsTabs = document.getElementById('results-tabs');
+  if (resultsTabs) resultsTabs.innerHTML = '';
+  const resultsDetail = document.getElementById('results-detail-content');
+  if (resultsDetail) {
+    resultsDetail.innerHTML = '<div class="console-empty-state"><span class="text-muted">Run your code to see offline test execution results.</span></div>';
+  }
 
   // Document Title
   document.title = `${q.title} | AlgoStudio Offline`;

@@ -133,26 +133,83 @@
 
 .left-pane {
   width: 50%;
-  min-width: 350px;
+  min-width: 280px;
+  max-width: calc(100% - 320px);
   border-right: 1px solid var(--border);
 }
 
 .right-pane {
   flex: 1;
-  min-width: 350px;
+  min-width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
 }
 
+/* Vertical Splitter (between Problem and Editor+Console) */
 .splitter {
-  width: 6px;
+  width: 8px;
   background-color: var(--border);
   cursor: col-resize;
-  transition: background-color 0.2s;
+  transition: background-color 0.15s, box-shadow 0.15s;
   z-index: 50;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.splitter-grip {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+  background-color: var(--text-dim);
+  transition: background-color 0.15s;
 }
 
 .splitter:hover, .splitter.active {
   background-color: var(--primary);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.splitter:hover .splitter-grip,
+.splitter.active .splitter-grip {
+  background-color: #ffffff;
+}
+
+/* Horizontal Splitter (between Editor and Console) */
+.horizontal-splitter {
+  height: 8px;
+  background-color: var(--border);
+  cursor: row-resize;
+  transition: background-color 0.15s, box-shadow 0.15s;
+  z-index: 50;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.splitter-grip-horizontal {
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--text-dim);
+  transition: background-color 0.15s;
+}
+
+.horizontal-splitter:hover, .horizontal-splitter.active {
+  background-color: var(--primary);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.horizontal-splitter:hover .splitter-grip-horizontal,
+.horizontal-splitter.active .splitter-grip-horizontal {
+  background-color: #ffffff;
 }
 
 /* Problem Container Header */

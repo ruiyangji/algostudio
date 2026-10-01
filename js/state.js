@@ -9,6 +9,8 @@ const state = {
   solutionLanguage: 'python',
   activeTab: 'tab-description',
   activeResultCase: 0,
+  activeConsoleTestcase: 0,
+  consoleHeight: 240,
   lastRunResult: null,
   editorCodes: {} // Cache edits by `${qid}_${lang}`
 };

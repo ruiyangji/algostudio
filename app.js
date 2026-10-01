@@ -9,6 +9,8 @@ const state = {
   solutionLanguage: 'python',
   activeTab: 'tab-description',
   activeResultCase: 0,
+  activeConsoleTestcase: 0,
+  consoleHeight: 240,
   lastRunResult: null,
   editorCodes: {} // Cache edits by `${qid}_${lang}`
 };
@@ -609,39 +611,147 @@ function setTheme(theme) {
 function initSplitter() {
   const splitter = document.getElementById('splitter');
   const leftPane = document.getElementById('left-pane');
-  if (!splitter || !leftPane) return;
-  let isDragging = false;
+  const horizontalSplitter = document.getElementById('horizontal-splitter');
+  const rightPane = document.getElementById('right-pane');
+  const consolePane = document.getElementById('console-pane');
 
-  splitter.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    splitter.classList.add('active');
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
-  });
+  // Restore saved vertical split width
+  const savedLeft = localStorage.getItem('algostudio_split_left');
+  if (savedLeft && leftPane) {
+    const val = parseFloat(savedLeft);
+    if (val >= 20 && val <= 80) {
+      leftPane.style.width = `${val}%`;
+    }
+  }
 
+  // Restore saved horizontal console height
+  const savedConsoleH = localStorage.getItem('algostudio_console_height');
+  if (savedConsoleH && consolePane) {
+    const val = parseInt(savedConsoleH, 10);
+    if (val >= 44 && val <= 800) {
+      consolePane.style.height = `${val}px`;
+      if (typeof state !== 'undefined') state.consoleHeight = val;
+    }
+  }
+
+  let isDraggingVertical = false;
+  let isDraggingHorizontal = false;
+
+  // Vertical Splitter Listeners (Window 1 vs Window 2+3)
+  if (splitter && leftPane) {
+    splitter.addEventListener('mousedown', (e) => {
+      isDraggingVertical = true;
+      splitter.classList.add('active');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    });
+  }
+
+  // Horizontal Splitter Listeners (Window 2 Editor vs Window 3 Console)
+  if (horizontalSplitter && consolePane && rightPane) {
+    horizontalSplitter.addEventListener('mousedown', (e) => {
+      isDraggingHorizontal = true;
+      horizontalSplitter.classList.add('active');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'row-resize';
+    });
+  }
+
+  // Mouse Move Handler for both splitters
   window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const containerWidth = window.innerWidth;
-    const newWidth = (e.clientX / containerWidth) * 100;
-    if (newWidth >= 25 && newWidth <= 75) {
-      leftPane.style.width = `${newWidth}%`;
-      if (typeof layoutEditor === 'function') {
-        layoutEditor();
+    if (isDraggingVertical && leftPane) {
+      const containerWidth = window.innerWidth;
+      const newWidth = (e.clientX / containerWidth) * 100;
+      if (newWidth >= 20 && newWidth <= 80) {
+        leftPane.style.width = `${newWidth}%`;
+        localStorage.setItem('algostudio_split_left', newWidth.toFixed(2));
+        if (typeof layoutEditor === 'function') {
+          requestAnimationFrame(layoutEditor);
+        }
+      }
+    } else if (isDraggingHorizontal && consolePane && rightPane) {
+      const rightPaneRect = rightPane.getBoundingClientRect();
+      const newHeight = rightPaneRect.bottom - e.clientY;
+      const minH = 44;
+      const maxH = rightPaneRect.height - 120;
+      if (newHeight >= minH && newHeight <= maxH) {
+        if (consolePane.classList.contains('collapsed') && newHeight > 54) {
+          consolePane.classList.remove('collapsed');
+        }
+        consolePane.style.height = `${newHeight}px`;
+        if (typeof state !== 'undefined') state.consoleHeight = Math.round(newHeight);
+        localStorage.setItem('algostudio_console_height', Math.round(newHeight));
+        if (typeof layoutEditor === 'function') {
+          requestAnimationFrame(layoutEditor);
+        }
       }
     }
   });
 
+  // Mouse Up Handler
   window.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      splitter.classList.remove('active');
+    let changed = false;
+    if (isDraggingVertical) {
+      isDraggingVertical = false;
+      if (splitter) splitter.classList.remove('active');
+      changed = true;
+    }
+    if (isDraggingHorizontal) {
+      isDraggingHorizontal = false;
+      if (horizontalSplitter) horizontalSplitter.classList.remove('active');
+      changed = true;
+    }
+    if (changed) {
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
       if (typeof layoutEditor === 'function') {
-        layoutEditor();
+        requestAnimationFrame(layoutEditor);
       }
     }
   });
+}
+
+function toggleConsoleCollapse() {
+  const consolePane = document.getElementById('console-pane');
+  if (!consolePane) return;
+  const isCollapsed = consolePane.classList.contains('collapsed');
+  if (isCollapsed) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+  } else {
+    const currentH = consolePane.offsetHeight;
+    if (currentH > 44) {
+      if (typeof state !== 'undefined') state.consoleHeight = currentH;
+      localStorage.setItem('algostudio_console_height', currentH);
+    }
+    consolePane.classList.add('collapsed');
+  }
+  if (typeof layoutEditor === 'function') {
+    requestAnimationFrame(layoutEditor);
+  }
+}
+
+function switchConsoleTab(tabId) {
+  const consolePane = document.getElementById('console-pane');
+  if (consolePane && consolePane.classList.contains('collapsed')) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+  }
+  document.querySelectorAll('.console-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `tab-btn-${tabId}`);
+  });
+  document.querySelectorAll('.console-tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === `console-tab-${tabId}`);
+  });
+  if (typeof layoutEditor === 'function') {
+    requestAnimationFrame(layoutEditor);
+  }
 }
 
 function switchTab(tabId) {
@@ -1119,44 +1229,66 @@ async function runCode() {
     showToast('Start local server: python3 app.py to execute code.');
   } finally {
     btnRun.disabled = false;
-    btnRun.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Code`;
+    btnRun.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Code <span class="keyboard-hint" style="opacity:0.8; font-size:11px; margin-left:2px;">(⌘↵)</span>`;
   }
 }
 
 function displayRunResults(data) {
-  const drawer = document.getElementById('results-drawer');
+  const consolePane = document.getElementById('console-pane');
+  if (consolePane && consolePane.classList.contains('collapsed')) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+    if (typeof layoutEditor === 'function') requestAnimationFrame(layoutEditor);
+  }
+
+  if (typeof switchConsoleTab === 'function') {
+    switchConsoleTab('result');
+  }
+
   const summaryElem = document.getElementById('runner-summary-status');
   const tabsContainer = document.getElementById('results-tabs');
   const detailContainer = document.getElementById('results-detail-content');
+  const statusDot = document.getElementById('console-status-dot');
 
-  drawer.classList.add('open');
-  tabsContainer.innerHTML = '';
+  if (tabsContainer) tabsContainer.innerHTML = '';
 
   if (data.error && (!data.results || data.results.length === 0)) {
-    summaryElem.innerHTML = `<span style="color:var(--danger)">Error: Execution Failed</span>`;
-    detailContainer.innerHTML = `
-      <div style="background:var(--danger-bg); border:1px solid var(--danger); padding:12px; border-radius:var(--radius-md); color:var(--danger-text); font-family:var(--font-mono); font-size:12px; white-space:pre-wrap;">
-        ${escapeHtml(data.error)}
-      </div>
-    `;
+    if (statusDot) statusDot.className = 'console-status-dot danger';
+    if (summaryElem) summaryElem.innerHTML = `<span style="color:var(--danger)">Error: Execution Failed</span>`;
+    if (detailContainer) {
+      detailContainer.innerHTML = `
+        <div style="background:var(--danger-bg); border:1px solid var(--danger); padding:12px; border-radius:var(--radius-md); color:var(--danger-text); font-family:var(--font-mono); font-size:12px; white-space:pre-wrap;">
+          ${escapeHtml(data.error)}
+        </div>
+      `;
+    }
     return;
   }
 
   const allPassed = data.allPassed;
+  if (statusDot) {
+    statusDot.className = `console-status-dot ${allPassed ? 'success' : 'danger'}`;
+  }
   const statusColor = allPassed ? 'var(--success)' : 'var(--danger)';
   const statusText = allPassed ? `All Passed (${data.passed}/${data.total})` : `${data.passed}/${data.total} Passed`;
   const timeText = data.totalTimeMs ? `in ${data.totalTimeMs}ms` : '';
 
-  summaryElem.innerHTML = `<strong style="color:${statusColor}">● ${statusText}</strong> <span class="text-muted">${timeText}</span>`;
+  if (summaryElem) {
+    summaryElem.innerHTML = `<strong style="color:${statusColor}">● ${statusText}</strong> <span class="text-muted">${timeText}</span>`;
+  }
 
-  // Create result tabs
-  (data.results || []).forEach((r, idx) => {
-    const chip = document.createElement('button');
-    chip.className = `res-tab-chip ${r.passed ? 'passed' : 'failed'} ${idx === 0 ? 'active' : ''}`;
-    chip.textContent = `Case ${r.case} ${r.passed ? '✓' : '✗'}`;
-    chip.onclick = () => selectResultCase(idx);
-    tabsContainer.appendChild(chip);
-  });
+  if (tabsContainer) {
+    (data.results || []).forEach((r, idx) => {
+      const chip = document.createElement('button');
+      chip.className = `res-tab-chip ${r.passed ? 'passed' : 'failed'} ${idx === 0 ? 'active' : ''}`;
+      chip.textContent = `Case ${r.case || idx + 1}`;
+      chip.onclick = () => selectResultCase(idx);
+      tabsContainer.appendChild(chip);
+    });
+  }
 
   selectResultCase(0);
 }
@@ -1172,11 +1304,13 @@ function selectResultCase(index) {
   });
 
   const detailContainer = document.getElementById('results-detail-content');
+  if (!detailContainer) return;
+
   detailContainer.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="badge ${r.passed ? 'badge-difficulty easy' : 'badge-difficulty hard'}">${r.passed ? 'PASSED' : 'FAILED'}</span>
-        <span style="font-size:13px; font-weight:600;">Test Case ${r.case}</span>
+        <span style="font-size:13px; font-weight:600;">Test Case ${r.case || index + 1}</span>
       </div>
       <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);">${r.durationMs ? `${r.durationMs}ms` : ''}</span>
     </div>
@@ -1205,9 +1339,71 @@ function selectResultCase(index) {
   `;
 }
 
+function renderConsoleTestcases() {
+  const q = state.currentQuestion;
+  const tabsContainer = document.getElementById('console-testcase-tabs');
+  const detailContainer = document.getElementById('console-testcase-detail');
+  if (!tabsContainer || !detailContainer) return;
+
+  tabsContainer.innerHTML = '';
+  const testCases = q?.testCases || [];
+  if (testCases.length === 0) {
+    detailContainer.innerHTML = '<div class="console-empty-state"><span class="text-muted">No test cases available for this question.</span></div>';
+    return;
+  }
+
+  testCases.forEach((tc, idx) => {
+    const chip = document.createElement('button');
+    chip.className = `testcase-chip ${idx === 0 ? 'active' : ''}`;
+    chip.textContent = `Case ${idx + 1}`;
+    chip.onclick = () => selectConsoleTestCase(idx);
+    tabsContainer.appendChild(chip);
+  });
+
+  selectConsoleTestCase(0);
+}
+
+function selectConsoleTestCase(index) {
+  const q = state.currentQuestion;
+  const testCases = q?.testCases || [];
+  state.activeConsoleTestcase = index;
+
+  document.querySelectorAll('#console-testcase-tabs .testcase-chip').forEach((c, idx) => {
+    c.classList.toggle('active', idx === index);
+  });
+
+  const detailContainer = document.getElementById('console-testcase-detail');
+  if (!detailContainer) return;
+
+  const tc = testCases[index];
+  if (!tc) {
+    detailContainer.innerHTML = '<span class="text-muted">No testcase selected.</span>';
+    return;
+  }
+
+  const step = (tc.steps && tc.steps[0]) ? tc.steps[0] : tc;
+  const inputData = step.input !== undefined ? step.input : (tc.input !== undefined ? tc.input : []);
+  const expectedData = step.expected !== undefined ? step.expected : (tc.expected !== undefined ? tc.expected : tc.output);
+  const methodName = step.methodName || (q.definition && q.definition.name) || 'solution';
+
+  detailContainer.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-size:13px; font-weight:600;">Case ${index + 1}</span>
+      <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${escapeHtml(methodName)}</span>
+    </div>
+    <div>
+      <div class="field-label">Input</div>
+      <div class="field-box">${escapeHtml(JSON.stringify(inputData, null, 2))}</div>
+    </div>
+    <div>
+      <div class="field-label">Expected Output</div>
+      <div class="field-box" style="color:var(--success);">${escapeHtml(JSON.stringify(expectedData, null, 2))}</div>
+    </div>
+  `;
+}
+
 function closeResultsDrawer() {
-  const drawer = document.getElementById('results-drawer');
-  if (drawer) drawer.classList.remove('open');
+  // Legacy compatibility stub
 }
 /**
  * AlgoStudio Question Catalog & Renderer
@@ -1337,15 +1533,26 @@ function setQuestion(q) {
   // Render Insights & Hints
   renderInsights(q.insights || { hints: q.hints || [] });
 
-  // Render Test Cases
+  // Render Test Cases (Tab view and Console Pane view)
   renderTestCases(q.testCases || []);
+  if (typeof renderConsoleTestcases === 'function') {
+    renderConsoleTestcases();
+  }
 
   // Update Editor with language starter code or cached edits
   loadCodeForLanguage(state.selectedLanguage);
 
-  // Reset Results Drawer
-  closeResultsDrawer();
-  document.getElementById('runner-summary-status').innerHTML = '<span class="text-muted">Click "Run Code" to test against test cases</span>';
+  // Reset Console Results & Status
+  const statusDot = document.getElementById('console-status-dot');
+  if (statusDot) statusDot.className = 'console-status-dot';
+  const runnerStatus = document.getElementById('runner-summary-status');
+  if (runnerStatus) runnerStatus.innerHTML = '<span class="text-muted">Click "Run Code" to test</span>';
+  const resultsTabs = document.getElementById('results-tabs');
+  if (resultsTabs) resultsTabs.innerHTML = '';
+  const resultsDetail = document.getElementById('results-detail-content');
+  if (resultsDetail) {
+    resultsDetail.innerHTML = '<div class="console-empty-state"><span class="text-muted">Run your code to see offline test execution results.</span></div>';
+  }
 
   // Document Title
   document.title = `${q.title} | AlgoStudio Offline`;
