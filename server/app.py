@@ -9,9 +9,10 @@ import json
 import urllib.parse
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-# Import modular runner
+# Import modular runner and lsp
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from runner import execute_python_code
+import lsp
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -90,6 +91,26 @@ class AlgoStudioHandler(SimpleHTTPRequestHandler):
             definition = payload.get("definition") or {}
             result = execute_python_code(code, test_cases, definition)
             return self.send_json_response(result)
+
+        elif path == "/api/complete":
+            code = payload.get("code", "")
+            line = payload.get("line", 1)
+            column = payload.get("column", 0)
+            return self.send_json_response(lsp.complete(code, line, column))
+
+        elif path == "/api/hover":
+            code = payload.get("code", "")
+            line = payload.get("line", 1)
+            column = payload.get("column", 0)
+            return self.send_json_response(lsp.hover(code, line, column))
+
+        elif path == "/api/lint":
+            code = payload.get("code", "")
+            return self.send_json_response(lsp.lint(code))
+
+        elif path == "/api/format":
+            code = payload.get("code", "")
+            return self.send_json_response(lsp.format_code(code))
 
         self.send_json_error(404, "Endpoint not found")
 
