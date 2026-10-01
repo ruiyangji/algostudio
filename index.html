@@ -297,13 +297,20 @@
               <h2>Question Management Dashboard</h2>
               <p class="modal-subtitle">Create, update, verify, and organize your coding interview questions</p>
             </div>
-                        <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="file" id="zip-file-input" accept=".zip" style="display:none;" onchange="importZipFile(this)">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('zip-file-input').click()" title="Bulk import problems from local .zip archive">
+                📥 Import .zip
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="exportZipFile()" title="Export problems to .zip archive">
+                📤 Export .zip
+              </button>
               <button class="btn btn-primary btn-sm" onclick="openQuestionEditor()">+ Create Question</button>
               <button class="btn-icon" onclick="closeDashboard()">✕</button>
             </div>
           </div>
 
-<div class="dashboard-header-stats">
+          <div class="dashboard-header-stats">
             <div class="stat-chip">Total Questions: <span class="count" id="dash-stat-total">0</span></div>
             <div class="stat-chip">Easy: <span class="count" style="color:var(--success);" id="dash-stat-easy">0</span></div>
             <div class="stat-chip">Medium: <span class="count" style="color:var(--warning);" id="dash-stat-med">0</span></div>

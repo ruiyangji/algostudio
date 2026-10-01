@@ -364,3 +364,35 @@ function practiceFromDashboard(qid) {
   closeDashboard();
   loadQuestionById(qid);
 }
+
+async function importZipFile(inputElement) {
+  const file = inputElement.files && inputElement.files[0];
+  if (!file) return;
+
+  showToast('Importing ZIP archive...');
+  try {
+    const res = await storageService.importZip(file);
+    if (res.errors && res.errors.length > 0 && res.count === 0) {
+      showToast(`Import failed: ${res.errors.join('; ')}`);
+    } else {
+      let msg = `Successfully imported ${res.count} question(s)!`;
+      if (res.errors && res.errors.length > 0) {
+        msg += ` (${res.errors.length} skipped)`;
+      }
+      showToast(msg);
+      await loadQuestionsIndex();
+      renderDashboardList();
+      if (state.questionsIndex && state.questionsIndex.length > 0) {
+        loadQuestionById(state.questionsIndex[0].id);
+      }
+    }
+  } catch (err) {
+    showToast(`Import error: ${err.message}`);
+  } finally {
+    inputElement.value = '';
+  }
+}
+
+function exportZipFile() {
+  window.location.href = storageService.exportZipUrl();
+}
