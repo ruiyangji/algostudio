@@ -1,0 +1,385 @@
+/* ================= LeetCode-Grade Markdown Typography & Content Styles ================= */
+
+.markdown-body {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.68;
+  color: var(--text-main);
+  letter-spacing: -0.15px;
+}
+
+.markdown-body p,
+.content-p {
+  margin: 0 0 14px 0;
+  line-height: 1.68;
+  color: var(--text-main);
+}
+
+.markdown-body strong {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.markdown-body em {
+  font-style: italic;
+  color: var(--text-main);
+}
+
+/* Headings */
+.content-h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 24px 0 12px 0;
+  letter-spacing: -0.3px;
+  color: var(--text-main);
+}
+
+.content-h2 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 20px 0 10px 0;
+  letter-spacing: -0.2px;
+  color: var(--text-main);
+}
+
+.content-h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 18px 0 10px 0;
+  letter-spacing: -0.1px;
+  color: var(--text-main);
+}
+
+.content-h4 {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 14px 0 8px 0;
+  color: var(--text-muted);
+}
+
+/* Inline Code Badges */
+.inline-code,
+.markdown-body code:not([class*="language-"]) {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-hover);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* LaTeX / Complexity Formula Badges */
+.math-formula,
+.complexity-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  margin: 0 2px;
+}
+
+/* ================= Example Cards ================= */
+.example-card {
+  margin: 16px 0 20px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.example-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.example-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.1px;
+}
+
+.example-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.example-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.example-key {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.example-code {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background-color: var(--code-bg);
+  border: 1px solid var(--code-border);
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+
+.example-code code {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+}
+
+.example-explanation {
+  padding: 2px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+/* ================= Constraints Section ================= */
+.constraints-card {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background-color: rgba(37, 99, 235, 0.04);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-left: 4px solid var(--primary);
+}
+
+.constraints-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+
+.constraints-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.constraints-list li {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.constraints-list li strong {
+  color: var(--text-main);
+}
+
+/* ================= Editorial Step Cards ================= */
+.step-card {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.step-content {
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.step-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-list li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.nested-list {
+  margin: 6px 0 4px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style-type: circle;
+}
+
+.nested-list li {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* ================= Complexity Analysis Section ================= */
+.complexity-card {
+  margin: 20px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.complexity-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--bg-secondary);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border);
+}
+
+.complexity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.complexity-item {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.complexity-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.complexity-type-badge.time {
+  color: #3b82f6;
+}
+
+.complexity-type-badge.space {
+  color: #10b981;
+}
+
+.complexity-desc {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.complexity-extra {
+  padding: 0 16px 14px 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ================= Generic Lists & Callouts ================= */
+.styled-list {
+  margin: 0 0 14px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.styled-list li {
+  color: var(--text-main);
+}
+
+.styled-ol {
+  margin: 0 0 14px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.styled-ol li,
+.ol-item {
+  color: var(--text-main);
+}
+
+.callout-quote {
+  margin: 14px 0;
+  padding: 10px 16px;
+  background-color: var(--bg-secondary);
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.callout-quote p {
+  margin: 0;
+}

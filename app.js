@@ -9,6 +9,8 @@ const state = {
   solutionLanguage: 'python',
   activeTab: 'tab-description',
   activeResultCase: 0,
+  activeConsoleTestcase: 0,
+  consoleHeight: 240,
   lastRunResult: null,
   editorCodes: {} // Cache edits by `${qid}_${lang}`
 };
@@ -55,65 +57,324 @@ function formatTag(tag) {
   return tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 /**
- * Lightweight Markdown & LaTeX Math Parser
+ * AlgoStudio LeetCode-Grade Markdown & Typography Engine
  */
 
 function parseMarkdown(md) {
   if (!md) return '';
 
-  let html = md;
+  let text = md;
 
-  // 1. Remove delimiter
-  html = html.replace(/<!--\s*###PREMIUM_CONTENT_DELIMITER###\s*-->/g, '');
+  // 1. Remove comments & delimiters
+  text = text.replace(/<!--\s*###PREMIUM_CONTENT_DELIMITER###\s*-->/g, '');
 
-  // 2. Escape standard characters but preserve math
-  html = escapeHtml(html);
+  // 2. Normalize HTML entities & clean excess whitespace
+  text = text.replace(/&nbsp;/g, ' ');
 
-  // 3. LaTeX Math formatting: $$ formula $$ or $$formula$$
-  html = html.replace(/\$\$([^\$]+)\$\$/g, (m, formula) => {
-    return `<span class="math-formula">${formula.trim()}</span>`;
+  // 3. Extract & protect code blocks
+  const codeBlocks = [];
+  text = text.replace(/```([a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (m, lang, code) => {
+    codeBlocks.push({ lang: lang || '', code: code.trim() });
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
 
-  // 4. Code Blocks
-  html = html.replace(/```([a-zA-Z0-9_\-]+)?\n([\s\S]*?)```/g, (m, lang, code) => {
-    return `<pre><code>${code.trim()}</code></pre>`;
+  // 4. Extract & protect display LaTeX math: $$ formula $$
+  const mathFormulas = [];
+  text = text.replace(/\$\$([^\$]+)\$\$/g, (m, formula) => {
+    mathFormulas.push(formula.trim());
+    return `__MATH_FORMULA_${mathFormulas.length - 1}__`;
   });
 
-  // 5. Inline Code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // 5. Extract & protect inline code: `code`
+  const inlineCodes = [];
+  text = text.replace(/`([^`\n]+)`/g, (m, code) => {
+    inlineCodes.push(code);
+    return `__INLINE_CODE_${inlineCodes.length - 1}__`;
+  });
 
-  // 6. Headings
-  html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+  // 6. Protect safe HTML tags (e.g. <sup>, <sub>, <br>)
+  const safeTags = [];
+  text = text.replace(/<(sup|sub|b|i|strong|em)(\s*\/)?>([\s\S]*?)<\/\1>/gi, (m) => {
+    safeTags.push(m);
+    return `__SAFE_TAG_${safeTags.length - 1}__`;
+  });
+  text = text.replace(/<br\s*\/?>/gi, () => {
+    safeTags.push('<br>');
+    return `__SAFE_TAG_${safeTags.length - 1}__`;
+  });
 
-  // 7. Bold and Italic
-  html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+  // Helper for inline markdown (bold, italic, complexity)
+  function renderInline(str) {
+    if (!str) return '';
+    let res = str;
+    // Bold
+    res = res.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+    // Complexity notation *O(...)*
+    res = res.replace(/\*O\((.*?)\)\*/g, '<span class="complexity-chip">O($1)</span>');
+    // Generic Italic
+    res = res.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+    return res;
+  }
 
-  // 8. Blockquotes
-  html = html.replace(/^>\s?(.*$)/gim, '<blockquote>$1</blockquote>');
+  // Placeholder container for structured cards to avoid interference with paragraph wrapping
+  const structuredCards = [];
+  function storeCard(html) {
+    structuredCards.push(html.trim());
+    return `\n\n__STRUCTURED_CARD_${structuredCards.length - 1}__\n\n`;
+  }
 
-  // 9. Unordered Lists
-  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>(\n)?)+/g, '<ul>$&</ul>');
+  // 7. Parse Examples Block by Block BEFORE escaping (so > is easily identified)
+  const exampleRegex = /(?:(?:\*\*|#+\s*)Example(?:\s*(\d+))?[:\.]?\*?\*?)([\s\S]*?)(?=(?:\*\*Example|#+\s*Example|\*\*Constraints|#+\s*Constraints|###\s*\**Complexity|$))/gi;
+  text = text.replace(exampleRegex, (match, exNum, exBody) => {
+    const lines = exBody.split('\n').map(l => l.replace(/^>\s?/, '').trim()).filter(Boolean);
+    let currentField = '';
+    let inputLines = [];
+    let outputLines = [];
+    let explLines = [];
 
-  // 10. Ordered Lists
-  html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
+    for (let line of lines) {
+      const inputMatch = line.match(/^\*?\*?Input:\*?\*?\s*(.*)$/i);
+      const outputMatch = line.match(/^\*?\*?Output:\*?\*?\s*(.*)$/i);
+      const explMatch = line.match(/^\*?\*?Explanation:\*?\*?\s*(.*)$/i);
 
-  // 11. Paragraphs (split by double newline)
-  const paragraphs = html.split(/\n\n+/);
-  html = paragraphs.map(p => {
-    p = p.trim();
-    if (!p) return '';
-    if (p.startsWith('<h') || p.startsWith('<pre') || p.startsWith('<ul') || p.startsWith('<blockquote')) {
-      return p;
+      if (inputMatch) {
+        currentField = 'input';
+        if (inputMatch[1]) inputLines.push(inputMatch[1]);
+      } else if (outputMatch) {
+        currentField = 'output';
+        if (outputMatch[1]) outputLines.push(outputMatch[1]);
+      } else if (explMatch) {
+        currentField = 'explanation';
+        if (explMatch[1]) explLines.push(explMatch[1]);
+      } else {
+        if (currentField === 'input') inputLines.push(line);
+        else if (currentField === 'output') outputLines.push(line);
+        else if (currentField === 'explanation') explLines.push(line);
+      }
     }
-    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+
+    const inputVal = inputLines.join('\n').trim();
+    const outputVal = outputLines.join('\n').trim();
+    const explVal = explLines.join(' ').trim();
+    const exLabel = exNum ? `Example ${exNum}` : 'Example';
+
+    const cardHtml = `
+<div class="example-card">
+  <div class="example-header">
+    <span class="example-badge">${exLabel}</span>
+  </div>
+  <div class="example-body">
+    ${inputVal ? `
+    <div class="example-row">
+      <span class="example-key">Input:</span>
+      <pre class="example-code"><code>${renderInline(inputVal)}</code></pre>
+    </div>` : ''}
+    ${outputVal ? `
+    <div class="example-row">
+      <span class="example-key">Output:</span>
+      <pre class="example-code"><code>${renderInline(outputVal)}</code></pre>
+    </div>` : ''}
+    ${explVal ? `
+    <div class="example-row explanation-row">
+      <span class="example-key">Explanation:</span>
+      <div class="example-explanation">${renderInline(explVal)}</div>
+    </div>` : ''}
+  </div>
+</div>`;
+    return storeCard(cardHtml);
+  });
+
+  // 8. Parse Constraints Section
+  const constraintsRegex = /(?:\*\*Constraints:\*\*|\*\*Constraints\*\*|#+\s*Constraints[:\.]?|Constraints:)([\s\S]*?)(?=(?:\*\*Example|__STRUCTURED_CARD_|#+\s*Example|###|$))/gi;
+  text = text.replace(constraintsRegex, (match, body) => {
+    const rawItems = body.split('\n')
+      .map(l => l.replace(/^>\s?/, '').trim())
+      .filter(l => l.startsWith('*') || l.startsWith('-'))
+      .map(l => l.replace(/^[\*\-]\s*/, '').trim());
+
+    if (rawItems.length === 0) return match;
+
+    const listHtml = rawItems.map(it => `<li>${renderInline(it)}</li>`).join('');
+    const cardHtml = `
+<div class="constraints-card">
+  <div class="constraints-title">Constraints:</div>
+  <ul class="constraints-list">${listHtml}</ul>
+</div>`;
+    return storeCard(cardHtml);
+  });
+
+  // 9. Parse Complexity Analysis in Editorial
+  const complexityRegex = /(?:###\s*\**Complexity Analysis\**|\*\*Complexity Analysis\*\*)([\s\S]*?)(?=(?:###|$))/gi;
+  text = text.replace(complexityRegex, (match, body) => {
+    const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+    let timeComplexity = '';
+    let spaceComplexity = '';
+    let otherLines = [];
+
+    for (let l of lines) {
+      const cleanLine = l.replace(/^[\*\-]\s*/, '');
+      const timeMatch = cleanLine.match(/^\*?\*?Time Complexity:\*?\*?\s*(.*)$/i);
+      const spaceMatch = cleanLine.match(/^\*?\*?Space Complexity:\*?\*?\s*(.*)$/i);
+
+      if (timeMatch) {
+        timeComplexity = timeMatch[1];
+      } else if (spaceMatch) {
+        spaceComplexity = spaceMatch[1];
+      } else {
+        otherLines.push(cleanLine);
+      }
+    }
+
+    if (!timeComplexity && !spaceComplexity) {
+      return storeCard(`<h3 class="content-h3">Complexity Analysis</h3><div class="complexity-desc">${renderInline(body)}</div>`);
+    }
+
+    const cardHtml = `
+<div class="complexity-card">
+  <div class="complexity-title">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+    Complexity Analysis
+  </div>
+  <div class="complexity-grid">
+    ${timeComplexity ? `
+    <div class="complexity-item">
+      <div class="complexity-type-badge time">Time Complexity</div>
+      <div class="complexity-desc">${renderInline(timeComplexity)}</div>
+    </div>` : ''}
+    ${spaceComplexity ? `
+    <div class="complexity-item">
+      <div class="complexity-type-badge space">Space Complexity</div>
+      <div class="complexity-desc">${renderInline(spaceComplexity)}</div>
+    </div>` : ''}
+  </div>
+  ${otherLines.length > 0 ? `<div class="complexity-extra">${renderInline(otherLines.join(' '))}</div>` : ''}
+</div>`;
+    return storeCard(cardHtml);
+  });
+
+  // Helper for parsing nested bullet lists
+  function parseNestedList(lines) {
+    if (lines.length === 0) return '';
+    let html = '';
+    let stack = [];
+
+    for (let rawLine of lines) {
+      if (!rawLine.trim()) continue;
+      const indentMatch = rawLine.match(/^(\s*)/);
+      const indent = indentMatch ? indentMatch[1].length : 0;
+      const content = rawLine.replace(/^\s*[\*\-]\s*/, '').trim();
+
+      const level = Math.floor(indent / 4);
+
+      while (stack.length > level + 1) {
+        html += '</li></ul>';
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        html += '<ul class="step-list"><li>';
+        stack.push(0);
+      } else if (level >= stack.length) {
+        html += '<ul class="nested-list"><li>';
+        stack.push(level);
+      } else {
+        html += '</li><li>';
+      }
+
+      html += renderInline(content);
+    }
+
+    while (stack.length > 0) {
+      html += '</li></ul>';
+      stack.pop();
+    }
+
+    return html;
+  }
+
+  // 10. Parse Numbered Steps in Editorial (e.g. "1. **Title**\n    - sub item")
+  const stepRegex = /(?:^|\n)(\d+)\.\s+\*\*(.*?)\*\*([\s\S]*?)(?=(?:\n\s*\d+\.\s+\*\*|\n\s*###|__STRUCTURED_CARD_|$))/gi;
+  text = text.replace(stepRegex, (match, stepNum, stepTitle, stepBody) => {
+    const lines = stepBody.split('\n').filter(l => l.trim().length > 0);
+    const listHtml = parseNestedList(lines);
+
+    const cardHtml = `
+<div class="step-card">
+  <div class="step-header">
+    <span class="step-number">${stepNum}</span>
+    <h4 class="step-title">${renderInline(stepTitle)}</h4>
+  </div>
+  <div class="step-content">
+    ${listHtml}
+  </div>
+</div>`;
+    return storeCard(cardHtml);
+  });
+
+  // 11. Headings
+  text = text.replace(/^#### (.*$)/gim, '<h4 class="content-h4">$1</h4>');
+  text = text.replace(/^### (.*$)/gim, '<h3 class="content-h3">$1</h3>');
+  text = text.replace(/^## (.*$)/gim, '<h2 class="content-h2">$1</h2>');
+  text = text.replace(/^# (.*$)/gim, '<h1 class="content-h1">$1</h1>');
+
+  // Ensure lists preceded by non-list text have a blank line
+  text = text.replace(/([^\n])\n(\s*[-*]\s+)/g, '$1\n\n$2');
+  text = text.replace(/([^\n])\n(\s*\d+\.\s+)/g, '$1\n\n$2');
+
+  // 12. Ordered Lists (regular)
+  text = text.replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="ol-item">$1</li>');
+  text = text.replace(/(<li class="ol-item">.*<\/li>(\n)?)+/g, '<ol class="styled-ol">$&</ol>');
+
+  // 13. Generic Bullet Lists (regular)
+  text = text.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
+  text = text.replace(/(<li>.*<\/li>(\n)?)+/g, '<ul class="styled-list">$&</ul>');
+
+  // 14. Generic Blockquotes
+  text = text.replace(/^>\s?(.*$)/gim, '<blockquote class="callout-quote"><p>$1</p></blockquote>');
+
+  // 15. Inline formatting across remaining text
+  text = renderInline(text);
+
+  // 16. Paragraph wrapping
+  const blocks = text.split(/\n\n+/);
+  text = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (block.startsWith('__STRUCTURED_CARD_') ||
+        block.startsWith('<h') ||
+        block.startsWith('<pre') ||
+        block.startsWith('<ul') ||
+        block.startsWith('<ol') ||
+        block.startsWith('<blockquote')) {
+      return block;
+    }
+    return `<p class="content-p">${block.replace(/\n/g, '<br>')}</p>`;
   }).join('\n');
 
-  return html;
+  // 17. Restore Structured Cards
+  text = text.replace(/__STRUCTURED_CARD_(\d+)__/g, (m, idx) => {
+    return structuredCards[parseInt(idx, 10)] || '';
+  });
+
+  // 18. Restore Code Blocks, Math, Safe Tags, and Inline Code
+  text = text.replace(/__CODE_BLOCK_(\d+)__/g, (m, idx) => {
+    const cb = codeBlocks[parseInt(idx, 10)];
+    return `<pre class="code-block"><code class="${cb.lang}">${cb.code}</code></pre>`;
+  });
+
+  text = text.replace(/__MATH_FORMULA_(\d+)__/g, (m, idx) => {
+    return `<span class="math-formula">${mathFormulas[parseInt(idx, 10)]}</span>`;
+  });
+
+  text = text.replace(/__SAFE_TAG_(\d+)__/g, (m, idx) => {
+    return safeTags[parseInt(idx, 10)] || '';
+  });
+
+  text = text.replace(/__INLINE_CODE_(\d+)__/g, (m, idx) => {
+    return `<code class="inline-code">${inlineCodes[parseInt(idx, 10)]}</code>`;
+  });
+
+  return text;
 }
 /**
  * AlgoStudio Question Storage Client Service
@@ -609,39 +870,147 @@ function setTheme(theme) {
 function initSplitter() {
   const splitter = document.getElementById('splitter');
   const leftPane = document.getElementById('left-pane');
-  if (!splitter || !leftPane) return;
-  let isDragging = false;
+  const horizontalSplitter = document.getElementById('horizontal-splitter');
+  const rightPane = document.getElementById('right-pane');
+  const consolePane = document.getElementById('console-pane');
 
-  splitter.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    splitter.classList.add('active');
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
-  });
+  // Restore saved vertical split width
+  const savedLeft = localStorage.getItem('algostudio_split_left');
+  if (savedLeft && leftPane) {
+    const val = parseFloat(savedLeft);
+    if (val >= 20 && val <= 80) {
+      leftPane.style.width = `${val}%`;
+    }
+  }
 
+  // Restore saved horizontal console height
+  const savedConsoleH = localStorage.getItem('algostudio_console_height');
+  if (savedConsoleH && consolePane) {
+    const val = parseInt(savedConsoleH, 10);
+    if (val >= 44 && val <= 800) {
+      consolePane.style.height = `${val}px`;
+      if (typeof state !== 'undefined') state.consoleHeight = val;
+    }
+  }
+
+  let isDraggingVertical = false;
+  let isDraggingHorizontal = false;
+
+  // Vertical Splitter Listeners (Window 1 vs Window 2+3)
+  if (splitter && leftPane) {
+    splitter.addEventListener('mousedown', (e) => {
+      isDraggingVertical = true;
+      splitter.classList.add('active');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+    });
+  }
+
+  // Horizontal Splitter Listeners (Window 2 Editor vs Window 3 Console)
+  if (horizontalSplitter && consolePane && rightPane) {
+    horizontalSplitter.addEventListener('mousedown', (e) => {
+      isDraggingHorizontal = true;
+      horizontalSplitter.classList.add('active');
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'row-resize';
+    });
+  }
+
+  // Mouse Move Handler for both splitters
   window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const containerWidth = window.innerWidth;
-    const newWidth = (e.clientX / containerWidth) * 100;
-    if (newWidth >= 25 && newWidth <= 75) {
-      leftPane.style.width = `${newWidth}%`;
-      if (typeof layoutEditor === 'function') {
-        layoutEditor();
+    if (isDraggingVertical && leftPane) {
+      const containerWidth = window.innerWidth;
+      const newWidth = (e.clientX / containerWidth) * 100;
+      if (newWidth >= 20 && newWidth <= 80) {
+        leftPane.style.width = `${newWidth}%`;
+        localStorage.setItem('algostudio_split_left', newWidth.toFixed(2));
+        if (typeof layoutEditor === 'function') {
+          requestAnimationFrame(layoutEditor);
+        }
+      }
+    } else if (isDraggingHorizontal && consolePane && rightPane) {
+      const rightPaneRect = rightPane.getBoundingClientRect();
+      const newHeight = rightPaneRect.bottom - e.clientY;
+      const minH = 44;
+      const maxH = rightPaneRect.height - 120;
+      if (newHeight >= minH && newHeight <= maxH) {
+        if (consolePane.classList.contains('collapsed') && newHeight > 54) {
+          consolePane.classList.remove('collapsed');
+        }
+        consolePane.style.height = `${newHeight}px`;
+        if (typeof state !== 'undefined') state.consoleHeight = Math.round(newHeight);
+        localStorage.setItem('algostudio_console_height', Math.round(newHeight));
+        if (typeof layoutEditor === 'function') {
+          requestAnimationFrame(layoutEditor);
+        }
       }
     }
   });
 
+  // Mouse Up Handler
   window.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      splitter.classList.remove('active');
+    let changed = false;
+    if (isDraggingVertical) {
+      isDraggingVertical = false;
+      if (splitter) splitter.classList.remove('active');
+      changed = true;
+    }
+    if (isDraggingHorizontal) {
+      isDraggingHorizontal = false;
+      if (horizontalSplitter) horizontalSplitter.classList.remove('active');
+      changed = true;
+    }
+    if (changed) {
       document.body.style.userSelect = '';
       document.body.style.cursor = '';
       if (typeof layoutEditor === 'function') {
-        layoutEditor();
+        requestAnimationFrame(layoutEditor);
       }
     }
   });
+}
+
+function toggleConsoleCollapse() {
+  const consolePane = document.getElementById('console-pane');
+  if (!consolePane) return;
+  const isCollapsed = consolePane.classList.contains('collapsed');
+  if (isCollapsed) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+  } else {
+    const currentH = consolePane.offsetHeight;
+    if (currentH > 44) {
+      if (typeof state !== 'undefined') state.consoleHeight = currentH;
+      localStorage.setItem('algostudio_console_height', currentH);
+    }
+    consolePane.classList.add('collapsed');
+  }
+  if (typeof layoutEditor === 'function') {
+    requestAnimationFrame(layoutEditor);
+  }
+}
+
+function switchConsoleTab(tabId) {
+  const consolePane = document.getElementById('console-pane');
+  if (consolePane && consolePane.classList.contains('collapsed')) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+  }
+  document.querySelectorAll('.console-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `tab-btn-${tabId}`);
+  });
+  document.querySelectorAll('.console-tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === `console-tab-${tabId}`);
+  });
+  if (typeof layoutEditor === 'function') {
+    requestAnimationFrame(layoutEditor);
+  }
 }
 
 function switchTab(tabId) {
@@ -1119,44 +1488,66 @@ async function runCode() {
     showToast('Start local server: python3 app.py to execute code.');
   } finally {
     btnRun.disabled = false;
-    btnRun.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Code`;
+    btnRun.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Code <span class="keyboard-hint" style="opacity:0.8; font-size:11px; margin-left:2px;">(⌘↵)</span>`;
   }
 }
 
 function displayRunResults(data) {
-  const drawer = document.getElementById('results-drawer');
+  const consolePane = document.getElementById('console-pane');
+  if (consolePane && consolePane.classList.contains('collapsed')) {
+    consolePane.classList.remove('collapsed');
+    const h = (typeof state !== 'undefined' && state.consoleHeight)
+      || parseInt(localStorage.getItem('algostudio_console_height'), 10)
+      || 240;
+    consolePane.style.height = `${h}px`;
+    if (typeof layoutEditor === 'function') requestAnimationFrame(layoutEditor);
+  }
+
+  if (typeof switchConsoleTab === 'function') {
+    switchConsoleTab('result');
+  }
+
   const summaryElem = document.getElementById('runner-summary-status');
   const tabsContainer = document.getElementById('results-tabs');
   const detailContainer = document.getElementById('results-detail-content');
+  const statusDot = document.getElementById('console-status-dot');
 
-  drawer.classList.add('open');
-  tabsContainer.innerHTML = '';
+  if (tabsContainer) tabsContainer.innerHTML = '';
 
   if (data.error && (!data.results || data.results.length === 0)) {
-    summaryElem.innerHTML = `<span style="color:var(--danger)">Error: Execution Failed</span>`;
-    detailContainer.innerHTML = `
-      <div style="background:var(--danger-bg); border:1px solid var(--danger); padding:12px; border-radius:var(--radius-md); color:var(--danger-text); font-family:var(--font-mono); font-size:12px; white-space:pre-wrap;">
-        ${escapeHtml(data.error)}
-      </div>
-    `;
+    if (statusDot) statusDot.className = 'console-status-dot danger';
+    if (summaryElem) summaryElem.innerHTML = `<span style="color:var(--danger)">Error: Execution Failed</span>`;
+    if (detailContainer) {
+      detailContainer.innerHTML = `
+        <div style="background:var(--danger-bg); border:1px solid var(--danger); padding:12px; border-radius:var(--radius-md); color:var(--danger-text); font-family:var(--font-mono); font-size:12px; white-space:pre-wrap;">
+          ${escapeHtml(data.error)}
+        </div>
+      `;
+    }
     return;
   }
 
   const allPassed = data.allPassed;
+  if (statusDot) {
+    statusDot.className = `console-status-dot ${allPassed ? 'success' : 'danger'}`;
+  }
   const statusColor = allPassed ? 'var(--success)' : 'var(--danger)';
   const statusText = allPassed ? `All Passed (${data.passed}/${data.total})` : `${data.passed}/${data.total} Passed`;
   const timeText = data.totalTimeMs ? `in ${data.totalTimeMs}ms` : '';
 
-  summaryElem.innerHTML = `<strong style="color:${statusColor}">● ${statusText}</strong> <span class="text-muted">${timeText}</span>`;
+  if (summaryElem) {
+    summaryElem.innerHTML = `<strong style="color:${statusColor}">● ${statusText}</strong> <span class="text-muted">${timeText}</span>`;
+  }
 
-  // Create result tabs
-  (data.results || []).forEach((r, idx) => {
-    const chip = document.createElement('button');
-    chip.className = `res-tab-chip ${r.passed ? 'passed' : 'failed'} ${idx === 0 ? 'active' : ''}`;
-    chip.textContent = `Case ${r.case} ${r.passed ? '✓' : '✗'}`;
-    chip.onclick = () => selectResultCase(idx);
-    tabsContainer.appendChild(chip);
-  });
+  if (tabsContainer) {
+    (data.results || []).forEach((r, idx) => {
+      const chip = document.createElement('button');
+      chip.className = `res-tab-chip ${r.passed ? 'passed' : 'failed'} ${idx === 0 ? 'active' : ''}`;
+      chip.textContent = `Case ${r.case || idx + 1}`;
+      chip.onclick = () => selectResultCase(idx);
+      tabsContainer.appendChild(chip);
+    });
+  }
 
   selectResultCase(0);
 }
@@ -1172,11 +1563,13 @@ function selectResultCase(index) {
   });
 
   const detailContainer = document.getElementById('results-detail-content');
+  if (!detailContainer) return;
+
   detailContainer.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
       <div style="display:flex; align-items:center; gap:8px;">
         <span class="badge ${r.passed ? 'badge-difficulty easy' : 'badge-difficulty hard'}">${r.passed ? 'PASSED' : 'FAILED'}</span>
-        <span style="font-size:13px; font-weight:600;">Test Case ${r.case}</span>
+        <span style="font-size:13px; font-weight:600;">Test Case ${r.case || index + 1}</span>
       </div>
       <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);">${r.durationMs ? `${r.durationMs}ms` : ''}</span>
     </div>
@@ -1205,9 +1598,71 @@ function selectResultCase(index) {
   `;
 }
 
+function renderConsoleTestcases() {
+  const q = state.currentQuestion;
+  const tabsContainer = document.getElementById('console-testcase-tabs');
+  const detailContainer = document.getElementById('console-testcase-detail');
+  if (!tabsContainer || !detailContainer) return;
+
+  tabsContainer.innerHTML = '';
+  const testCases = q?.testCases || [];
+  if (testCases.length === 0) {
+    detailContainer.innerHTML = '<div class="console-empty-state"><span class="text-muted">No test cases available for this question.</span></div>';
+    return;
+  }
+
+  testCases.forEach((tc, idx) => {
+    const chip = document.createElement('button');
+    chip.className = `testcase-chip ${idx === 0 ? 'active' : ''}`;
+    chip.textContent = `Case ${idx + 1}`;
+    chip.onclick = () => selectConsoleTestCase(idx);
+    tabsContainer.appendChild(chip);
+  });
+
+  selectConsoleTestCase(0);
+}
+
+function selectConsoleTestCase(index) {
+  const q = state.currentQuestion;
+  const testCases = q?.testCases || [];
+  state.activeConsoleTestcase = index;
+
+  document.querySelectorAll('#console-testcase-tabs .testcase-chip').forEach((c, idx) => {
+    c.classList.toggle('active', idx === index);
+  });
+
+  const detailContainer = document.getElementById('console-testcase-detail');
+  if (!detailContainer) return;
+
+  const tc = testCases[index];
+  if (!tc) {
+    detailContainer.innerHTML = '<span class="text-muted">No testcase selected.</span>';
+    return;
+  }
+
+  const step = (tc.steps && tc.steps[0]) ? tc.steps[0] : tc;
+  const inputData = step.input !== undefined ? step.input : (tc.input !== undefined ? tc.input : []);
+  const expectedData = step.expected !== undefined ? step.expected : (tc.expected !== undefined ? tc.expected : tc.output);
+  const methodName = step.methodName || (q.definition && q.definition.name) || 'solution';
+
+  detailContainer.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-size:13px; font-weight:600;">Case ${index + 1}</span>
+      <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${escapeHtml(methodName)}</span>
+    </div>
+    <div>
+      <div class="field-label">Input</div>
+      <div class="field-box">${escapeHtml(JSON.stringify(inputData, null, 2))}</div>
+    </div>
+    <div>
+      <div class="field-label">Expected Output</div>
+      <div class="field-box" style="color:var(--success);">${escapeHtml(JSON.stringify(expectedData, null, 2))}</div>
+    </div>
+  `;
+}
+
 function closeResultsDrawer() {
-  const drawer = document.getElementById('results-drawer');
-  if (drawer) drawer.classList.remove('open');
+  // Legacy compatibility stub
 }
 /**
  * AlgoStudio Question Catalog & Renderer
@@ -1337,15 +1792,26 @@ function setQuestion(q) {
   // Render Insights & Hints
   renderInsights(q.insights || { hints: q.hints || [] });
 
-  // Render Test Cases
+  // Render Test Cases (Tab view and Console Pane view)
   renderTestCases(q.testCases || []);
+  if (typeof renderConsoleTestcases === 'function') {
+    renderConsoleTestcases();
+  }
 
   // Update Editor with language starter code or cached edits
   loadCodeForLanguage(state.selectedLanguage);
 
-  // Reset Results Drawer
-  closeResultsDrawer();
-  document.getElementById('runner-summary-status').innerHTML = '<span class="text-muted">Click "Run Code" to test against test cases</span>';
+  // Reset Console Results & Status
+  const statusDot = document.getElementById('console-status-dot');
+  if (statusDot) statusDot.className = 'console-status-dot';
+  const runnerStatus = document.getElementById('runner-summary-status');
+  if (runnerStatus) runnerStatus.innerHTML = '<span class="text-muted">Click "Run Code" to test</span>';
+  const resultsTabs = document.getElementById('results-tabs');
+  if (resultsTabs) resultsTabs.innerHTML = '';
+  const resultsDetail = document.getElementById('results-detail-content');
+  if (resultsDetail) {
+    resultsDetail.innerHTML = '<div class="console-empty-state"><span class="text-muted">Run your code to see offline test execution results.</span></div>';
+  }
 
   // Document Title
   document.title = `${q.title} | AlgoStudio Offline`;

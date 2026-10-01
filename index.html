@@ -161,72 +161,110 @@
         </div>
       </section>
 
-      <!-- Draggable Splitter -->
-      <div class="splitter" id="splitter" title="Drag to resize"></div>
+      <!-- Vertical Draggable Splitter -->
+      <div class="splitter vertical-splitter" id="splitter" title="Drag to resize horizontally">
+        <div class="splitter-grip"></div>
+      </div>
 
-      <!-- Right Panel: Code Editor & Execution Console -->
+      <!-- Right Panel: Code Editor (Window 2) & Console/Testcase (Window 3) -->
       <section class="pane right-pane" id="right-pane">
-        <!-- Editor Header -->
-        <div class="editor-header">
-          <div class="editor-header-left">
-            <label for="editor-lang-select" class="sr-only">Language</label>
-            <select id="editor-lang-select" onchange="onEditorLanguageChange(this.value)">
-              <option value="python">Python 3</option>
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-              <option value="typescript">TypeScript</option>
-            </select>
-          </div>
-          <div class="editor-header-right">
-            <button class="btn btn-ghost btn-sm" onclick="formatEditorCode()" title="Format Code (⌥ + ⇧ + F)">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-              Format
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="resetStarterCode()" title="Reset to default starter code">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-              Reset
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="loadSolutionIntoEditor()" title="Replace editor with official solution">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
-              Show Solution
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="copyEditorCode()" title="Copy editor code">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copy
-            </button>
-          </div>
-        </div>
-
-        <!-- Monaco Editor Container -->
-        <div class="editor-wrapper">
-          <div id="monaco-editor-container" style="width: 100%; height: 100%;"></div>
-        </div>
-
-        <!-- Execution Action & Results Bar -->
-        <div class="runner-footer">
-          <div class="runner-bar">
-            <div class="runner-bar-left">
-              <button class="btn btn-primary" id="btn-run" onclick="runCode()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                Run Code
+        <!-- Window 2: Code Editor Pane -->
+        <div class="editor-pane" id="editor-pane">
+          <!-- Editor Header -->
+          <div class="editor-header">
+            <div class="editor-header-left">
+              <label for="editor-lang-select" class="sr-only">Language</label>
+              <select id="editor-lang-select" onchange="onEditorLanguageChange(this.value)">
+                <option value="python">Python 3</option>
+                <option value="cpp">C++</option>
+                <option value="java">Java</option>
+                <option value="typescript">TypeScript</option>
+              </select>
+            </div>
+            <div class="editor-header-right">
+              <button class="btn btn-ghost btn-sm" onclick="formatEditorCode()" title="Format Code (⌥ + ⇧ + F)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+                Format
               </button>
-              <span class="keyboard-hint">(⌘ + Enter)</span>
-            </div>
-            <div class="runner-bar-right" id="runner-summary-status">
-              <span class="text-muted">Click "Run Code" to test against test cases</span>
+              <button class="btn btn-ghost btn-sm" onclick="resetStarterCode()" title="Reset to default starter code">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Reset
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="loadSolutionIntoEditor()" title="Replace editor with official solution">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+                Show Solution
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="copyEditorCode()" title="Copy editor code">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
             </div>
           </div>
 
-          <!-- Test Case Results Drawer -->
-          <div class="results-drawer" id="results-drawer">
-            <div class="results-header">
-              <div class="results-tabs" id="results-tabs">
-                <!-- Case 1, Case 2 tabs populated on run -->
-              </div>
-              <button class="btn-icon btn-sm" onclick="closeResultsDrawer()" title="Close Drawer">✕</button>
+          <!-- Monaco Editor Container -->
+          <div class="editor-wrapper" id="editor-wrapper">
+            <div id="monaco-editor-container" style="width: 100%; height: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Horizontal Draggable Splitter (between Editor and Console) -->
+        <div class="horizontal-splitter" id="horizontal-splitter" title="Drag to resize console vertically">
+          <div class="splitter-grip-horizontal"></div>
+        </div>
+
+        <!-- Window 3: LeetCode-Style Console / Testcase / Result Pane -->
+        <div class="console-pane" id="console-pane">
+          <!-- Console Header & Tab Bar -->
+          <div class="console-header">
+            <div class="console-tabs">
+              <button class="console-tab-btn active" id="tab-btn-testcase" onclick="switchConsoleTab('testcase')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Testcase
+              </button>
+              <button class="console-tab-btn" id="tab-btn-result" onclick="switchConsoleTab('result')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                Test Result
+                <span class="console-status-dot" id="console-status-dot"></span>
+              </button>
             </div>
-            <div class="results-detail" id="results-detail-content">
-              <!-- Active test case comparison output -->
+
+            <div class="console-actions">
+              <div id="runner-summary-status" class="runner-summary-status">
+                <span class="text-muted">Click "Run Code" to test</span>
+              </div>
+              <button class="btn btn-ghost btn-sm btn-icon" id="btn-toggle-console" onclick="toggleConsoleCollapse()" title="Collapse / Expand Console">
+                <svg id="console-collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-run" onclick="runCode()" title="Run Code (⌘ + Enter)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Run Code
+                <span class="keyboard-hint" style="opacity:0.8; font-size:11px; margin-left:2px;">(⌘↵)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Console Body -->
+          <div class="console-body" id="console-body">
+            <!-- View 1: Testcase Inputs -->
+            <div class="console-tab-content active" id="console-tab-testcase">
+              <div class="testcase-picker-bar" id="console-testcase-tabs">
+                <!-- Case 1, Case 2 tabs populated via JS -->
+              </div>
+              <div class="testcase-details" id="console-testcase-detail">
+                <!-- Inputs & Expected return for selected case -->
+              </div>
+            </div>
+
+            <!-- View 2: Test Run Results -->
+            <div class="console-tab-content" id="console-tab-result">
+              <div class="results-picker-bar" id="results-tabs">
+                <!-- Case 1 ✓, Case 2 ✗ tabs populated upon run -->
+              </div>
+              <div class="results-detail" id="results-detail-content">
+                <div class="console-empty-state">
+                  <span class="text-muted">Run your code to see offline test execution results.</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
