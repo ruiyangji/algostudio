@@ -19,3 +19,7 @@ package-lock.json
 
 # macOS
 .DS_Store
+
+# Build & Bundles
+dist/
+sample_data/bundle.js

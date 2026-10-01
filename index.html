@@ -412,7 +412,7 @@
 
               <div class="form-group">
                 <label>Target Company</label>
-                <input type="text" id="form-q-company" placeholder="e.g. Scale.AI, OpenAI, Google">
+                <input type="text" id="form-q-company" placeholder="e.g. Meta, OpenAI, Google">
               </div>
 
               <div class="form-group">
@@ -499,7 +499,8 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
-  <!-- Bundled data fallback for direct file:// browser viewing -->
+  <!-- Offline bundle fallbacks for static hosting & direct file:// viewing -->
+  <script src="sample_data/bundle.js"></script>
   <script src="data/bundle.js"></script>
   <script src="vendor/monaco/loader.js"></script>
   <script src="app.js"></script>
