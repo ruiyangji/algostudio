@@ -1,0 +1,84 @@
+{
+  "id": "two-sum-001",
+  "title": "Two Sum",
+  "slug": "two-sum",
+  "difficulty": 1,
+  "difficultyLabel": "Easy",
+  "company": {
+    "General": {
+      "frequency": "High"
+    }
+  },
+  "tags": ["Array", "Hash Table"],
+  "stats": {
+    "acceptance": "52.4%",
+    "submissions": 12500000
+  },
+  "description": "## Problem Description\n\nGiven an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have **exactly one solution**, and you may not use the same element twice.\n\nYou can return the answer in any order.\n\n### Examples\n\n#### Example 1:\n```\nInput: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].\n```\n\n#### Example 2:\n```\nInput: nums = [3, 2, 4], target = 6\nOutput: [1, 2]\n```\n\n#### Example 3:\n```\nInput: nums = [3, 3], target = 6\nOutput: [0, 1]\n```\n\n### Constraints:\n- `2 <= nums.length <= 10^4`\n- `-10^9 <= nums[i] <= 10^9`\n- `-10^9 <= target <= 10^9`\n- Only one valid answer exists.\n",
+  "editorial": "## Solution Approach\n\n### Hash Map (One-Pass)\n\nAn optimal approach is to use a hash table. As we iterate through the array, we check if the complement `target - nums[i]` already exists in our table.\n\n- If it exists, we found our pair and return `[map[complement], i]`.\n- If not, we record `map[nums[i]] = i` and proceed.\n\n### Complexity Analysis\n- **Time Complexity:** $O(N)$ where $N$ is the length of `nums`.\n- **Space Complexity:** $O(N)$ to store elements in the hash map.\n",
+  "hints": [
+    "A brute force approach would search for all pairs with two nested loops in O(N^2) time.",
+    "Can you remember the elements you have already seen in O(1) time?",
+    "Use a hash map where keys are numbers and values are their corresponding indices."
+  ],
+  "definition": {
+    "className": "Solution",
+    "methods": [
+      {
+        "name": "twoSum",
+        "params": [
+          {"name": "nums", "type": "list[int]"},
+          {"name": "target", "type": "int"}
+        ],
+        "return": {"type": "list[int]"}
+      }
+    ]
+  },
+  "language": {
+    "python": {
+      "predefinedCode": "class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        # Implement solution here\n        pass\n",
+      "solutionCode": "class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        seen = {}\n        for i, num in enumerate(nums):\n            diff = target - num\n            if diff in seen:\n                return [seen[diff], i]\n            seen[num] = i\n        return []\n"
+    },
+    "cpp": {
+      "predefinedCode": "#include <vector>\n#include <unordered_map>\n\nclass Solution {\npublic:\n    std::vector<int> twoSum(std::vector<int>& nums, int target) {\n        // Implement solution here\n        return {};\n    }\n};\n",
+      "solutionCode": "#include <vector>\n#include <unordered_map>\n\nclass Solution {\npublic:\n    std::vector<int> twoSum(std::vector<int>& nums, int target) {\n        std::unordered_map<int, int> seen;\n        for (int i = 0; i < nums.size(); ++i) {\n            int diff = target - nums[i];\n            if (seen.count(diff)) return {seen[diff], i};\n            seen[nums[i]] = i;\n        }\n        return {};\n    }\n};\n"
+    },
+    "java": {
+      "predefinedCode": "import java.util.*;\n\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Implement solution here\n        return new int[0];\n    }\n}\n",
+      "solutionCode": "import java.util.*;\n\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> map = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int complement = target - nums[i];\n            if (map.containsKey(complement)) {\n                return new int[] { map.get(complement), i };\n            }\n            map.put(nums[i], i);\n        }\n        return new int[0];\n    }\n}\n"
+    },
+    "typescript": {
+      "predefinedCode": "function twoSum(nums: number[], target: number): number[] {\n    // Implement solution here\n    return [];\n}\n",
+      "solutionCode": "function twoSum(nums: number[], target: number): number[] {\n    const map = new Map<number, number>();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) return [map.get(diff)!, i];\n        map.set(nums[i], i);\n    }\n    return [];\n}\n"
+    }
+  },
+  "testCases": [
+    {
+      "steps": [
+        {
+          "methodName": "twoSum",
+          "input": [[2, 7, 11, 15], 9],
+          "expected": [0, 1]
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "methodName": "twoSum",
+          "input": [[3, 2, 4], 6],
+          "expected": [1, 2]
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "methodName": "twoSum",
+          "input": [[3, 3], 6],
+          "expected": [0, 1]
+        }
+      ]
+    }
+  ]
+}
