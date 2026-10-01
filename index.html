@@ -41,7 +41,9 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
           Browse Questions (<span id="total-questions-count">0</span>)
         </button>
+        <button class="btn btn-primary btn-sm" onclick="openDashboard()" title="Open Question Management Dashboard">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Manage / Create
         </button>
       </div>
 
@@ -286,6 +288,153 @@
     </div>
 
     <!-- Question Management Dashboard Modal -->
+    <div class="modal-overlay" id="dashboard-modal" onclick="closeDashboard(event)">
+      <div class="modal-dialog dashboard-modal-dialog" onclick="event.stopPropagation()">
+        <!-- Dashboard List View -->
+        <div class="dashboard-view active" id="dashboard-view-list">
+          <div class="modal-header">
+            <div class="modal-title-group">
+              <h2>Question Management Dashboard</h2>
+              <p class="modal-subtitle">Create, update, verify, and organize your coding interview questions</p>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="file" id="zip-file-input" accept=".zip" style="display:none;" onchange="importZipFile(this)">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('zip-file-input').click()" title="Bulk import problems from local .zip archive">
+                📥 Import .zip
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="exportZipFile()" title="Export problems to .zip archive">
+                📤 Export .zip
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="openQuestionEditor()">+ Create Question</button>
+              <button class="btn-icon" onclick="closeDashboard()">✕</button>
+            </div>
+          </div>
+
+          <div class="dashboard-header-stats">
+            <div class="stat-chip">Total Questions: <span class="count" id="dash-stat-total">0</span></div>
+            <div class="stat-chip">Easy: <span class="count" style="color:var(--success);" id="dash-stat-easy">0</span></div>
+            <div class="stat-chip">Medium: <span class="count" style="color:var(--warning);" id="dash-stat-med">0</span></div>
+            <div class="stat-chip">Hard: <span class="count" style="color:var(--danger);" id="dash-stat-hard">0</span></div>
+          </div>
+
+          <div class="modal-body">
+            <div class="questions-table-wrapper">
+              <table class="questions-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Company</th>
+                    <th>Difficulty</th>
+                    <th>Tests</th>
+                    <th>Tags</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-table-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Question Editor View -->
+        <div class="dashboard-view" id="dashboard-view-editor">
+          <div class="modal-header">
+            <div class="modal-title-group">
+              <h2 id="dash-editor-title">Create New Question</h2>
+              <p class="modal-subtitle">Define problem statement, metadata, test cases, and reference solution</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="switchToListView()">← Back to List</button>
+          </div>
+
+          <div class="modal-body" style="padding:24px;">
+            <div id="dash-verify-banner" class="verify-banner" style="display:none;"></div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Question Title *</label>
+                <input type="text" id="form-q-title" placeholder="e.g. Reverse Linked List II">
+              </div>
+
+              <div class="form-group">
+                <label>Target Company</label>
+                <input type="text" id="form-q-company" placeholder="e.g. Scale.AI, OpenAI, Google">
+              </div>
+
+              <div class="form-group">
+                <label>Difficulty</label>
+                <select id="form-q-diff">
+                  <option value="1">Easy</option>
+                  <option value="2" selected>Medium</option>
+                  <option value="3">Hard</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Tags (Comma separated)</label>
+                <input type="text" id="form-q-tags" placeholder="e.g. Linked List, Recursion">
+              </div>
+
+              <div class="form-group full-width">
+                <label>Problem Description (Markdown) *</label>
+                <textarea id="form-q-desc" placeholder="Markdown description with examples and constraints..."></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Editorial & Solution Approach (Markdown)</label>
+                <textarea id="form-q-editorial" placeholder="Algorithm analysis, complexity, and approach..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-section-title">
+              <span>Solution Interface & Starter Code</span>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Class Name</label>
+                <input type="text" id="form-q-class" value="Solution">
+              </div>
+
+              <div class="form-group">
+                <label>Primary Method Name</label>
+                <input type="text" id="form-q-method" value="solve">
+              </div>
+
+              <div class="form-group full-width">
+                <label>Starter Code (Template)</label>
+                <textarea id="form-q-starter" style="min-height:90px;" placeholder="class Solution:\n    def solve(self, ...):\n        pass"></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Reference Solution Code (For Test Verification) *</label>
+                <textarea id="form-q-solution" style="min-height:120px;" placeholder="class Solution:\n    def solve(self, ...):\n        return result"></textarea>
+              </div>
+            </div>
+
+            <div class="form-section-title">
+              <span>Test Cases</span>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addTestCaseRow()">+ Add Test Case</button>
+            </div>
+
+            <div id="testcases-builder-list">
+              <!-- Dynamic test cases -->
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="switchToListView()">Cancel</button>
+            <button type="button" class="btn btn-secondary" onclick="verifySolutionBeforeSave()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Verify Solution
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveQuestionFromForm()">Save Question</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
   <!-- Bundled data fallback for direct file:// browser viewing -->
