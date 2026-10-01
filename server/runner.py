@@ -1,5 +1,5 @@
 """
-Hack2hire Code Runner Engine
+AlgoStudio Code Runner Engine
 Executes user code against structured test cases in an isolated Python subprocess.
 """
 
@@ -51,7 +51,7 @@ def run_tests():
         step = steps[0]
         m_name = step.get('methodName') or '{default_method}'
         args = step.get('input', [])
-        expected = step.get('expected')
+        expected = step.get('expectedReturn') if 'expectedReturn' in step else step.get('expected')
         
         fn = getattr(sol, m_name, None)
         if not fn:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Hack2hire Application Entry Point
+AlgoStudio Application Entry Point
 Delegates to the modular server package.
 """
 import os

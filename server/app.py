@@ -1,5 +1,5 @@
 """
-Hack2hire Modular Local Server & API Router
+AlgoStudio Modular Local Server & API Router
 Serves frontend assets, question datasets, and test execution engine.
 """
 
@@ -25,7 +25,7 @@ def get_data_dir():
     return SAMPLE_DATA_DIR
 
 
-class Hack2hireHandler(SimpleHTTPRequestHandler):
+class AlgoStudioHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
@@ -122,15 +122,15 @@ class Hack2hireHandler(SimpleHTTPRequestHandler):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Hack2hire Offline Platform Server")
+    parser = argparse.ArgumentParser(description="AlgoStudio Offline Platform Server")
     parser.add_argument("--port", type=int, default=8080, help="Port to run local server on (default: 8080)")
     parser.add_argument("--host", default="0.0.0.0", help="Host interface (default: 0.0.0.0)")
     args = parser.parse_args()
 
     server_address = (args.host, args.port)
-    httpd = HTTPServer(server_address, Hack2hireHandler)
+    httpd = HTTPServer(server_address, AlgoStudioHandler)
     print("=" * 60)
-    print("  Hack2hire Offline Coding Platform")
+    print("  AlgoStudio Offline Coding Platform")
     print(f"  Local Server: http://localhost:{args.port}")
     print("  Zero internet required. Fully self-contained.")
     print("=" * 60)
